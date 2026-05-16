@@ -18,13 +18,13 @@ jobs:
       - name: Build Image
         run: |
           # Build Docker Image for DockerHub
-          docker build --tag htrtech/zphisher:latest .
+          docker build --tag r4tur1/nullphish:latest .
 
           # Tag Docker Image for GHCR
-          docker tag htrtech/zphisher:latest ghcr.io/htr-tech/zphisher:latest
+          docker tag r4tur1/nullphish:latest ghcr.io/r4tur1/nullphish:latest
 
       - name: Login to GHCR
-        if: github.repository == 'htr-tech/zphisher' && github.ref == 'refs/heads/master'
+        if: github.repository == 'r4tur1/nullphish' && github.ref == 'refs/heads/master'
         uses: docker/login-action@v2
         with:
           registry: ghcr.io
@@ -32,16 +32,16 @@ jobs:
           password: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Login to DockerHub
-        if: github.repository == 'htr-tech/zphisher' && github.ref == 'refs/heads/master'
+        if: github.repository == 'r4tur1/nullphish' && github.ref == 'refs/heads/master'
         uses: docker/login-action@v2
         with:
-          username: "htrtech"
+          username: "r4tur1"
           password: ${{ secrets.DOCKER_TOKEN }}
 
       - name: Push
-        if: github.repository == 'htr-tech/zphisher' && github.ref == 'refs/heads/master'
+        if: github.repository == 'r4tur1/nullphish' && github.ref == 'refs/heads/master'
         run: |
           # Push to DockerHub
-          docker push htrtech/zphisher:latest
+          docker push r4tur1/nullphish:latest
           # Push to GHCR
-          docker push ghcr.io/htr-tech/zphisher:latest
+          docker push ghcr.io/r4tur1/nullphish:latest
