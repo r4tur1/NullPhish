@@ -152,6 +152,78 @@ $ nullphish
 
 ##
 
+### To-do List
+
+Sites to be updated :-
+
+- [ ] adobe
+- [ ] badoo
+- [ ] devian art
+- [ ] discord
+- [ ] dropbox
+- [ ] ebay
+- [ ] facebook
+- [ ] fb_advanced
+- [ ] fb_messenger
+- [ ] fb_security
+- [ ] github
+- [ ] gitlab
+- [ ] google
+- [ ] google_new
+- [ ] google_poll
+- [ ] ig_followers
+- [ ] ig_verify
+- [ ] insta_followers
+- [ ] instagram
+- [ ] linkedin
+- [ ] mediafire
+- [ ] microsoft
+- [ ] netflix
+- [ ] origin
+- [ ] paypal
+- [ ] pinterest
+- [ ] playstation
+- [ ] protonmail
+- [ ] quora
+- [ ] reddit
+- [ ] roblox
+- [ ] snapchat
+- [ ] spotify
+- [ ] stackoverflow
+- [ ] steam
+- [ ] tiktok
+- [ ] twitch
+- [ ] twitter
+- [ ] vk
+- [ ] vk_poll
+- [ ] wordpress
+- [ ] xbox
+- [ ] yahoo
+- [ ] yandex
+
+##
+
+To add :-
+
+- [ ] bumble
+- [ ] epicgames
+- [ ] hinge
+- [ ] icloud
+- [ ] onlyfans
+- [ ] patreon
+- [ ] riotgames
+- [ ] skype
+- [ ] teams
+- [ ] telegram
+- [ ] threads
+- [ ] tinder
+- [ ] ubisoft
+- [ ] wechat
+- [ ] whatsapp
+- [ ] zoom
+
+##
+
 ### Credits
 
 <p>
