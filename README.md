@@ -156,11 +156,10 @@ $ nullphish
 
 Sites to be updated :-
 
-- [ ] adobe
-- [ ] badoo
-- [ ] devian art
-- [ ] discord
-- [ ] dropbox
+- [X] adobe
+- [X] badoo
+- [X] discord
+- [X] dropbox
 - [ ] ebay
 - [ ] facebook
 - [ ] fb_advanced
@@ -179,7 +178,6 @@ Sites to be updated :-
 - [ ] mediafire
 - [ ] microsoft
 - [ ] netflix
-- [ ] origin
 - [ ] paypal
 - [ ] pinterest
 - [ ] playstation
@@ -189,17 +187,12 @@ Sites to be updated :-
 - [ ] roblox
 - [ ] snapchat
 - [ ] spotify
-- [ ] stackoverflow
 - [ ] steam
 - [ ] tiktok
 - [ ] twitch
 - [ ] twitter
-- [ ] vk
-- [ ] vk_poll
-- [ ] wordpress
 - [ ] xbox
 - [ ] yahoo
-- [ ] yandex
 
 ##
 
@@ -217,12 +210,22 @@ To add :-
 - [ ] telegram
 - [ ] threads
 - [ ] tinder
-- [ ] ubisoft
-- [ ] wechat
 - [ ] whatsapp
 - [ ] zoom
 
 ##
+
+to be removed (due to less use) :-
+
+- [ ] devianart
+- [ ] origin
+- [ ] vk
+- [ ] vk-poll
+- [ ] wordpress
+- [ ] yandex
+
+##
+
 
 ### Credits
 
