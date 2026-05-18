@@ -383,6 +383,34 @@
                 grid-template-columns: 1fr 1fr;
             }
         }
+        /* Force section backgrounds on image containers */
+        .page-section--hero .page-section__picture {
+            background: #E9D8FF;
+        }
+        .page-section--confidence .page-section__picture {
+            background: #F3EAFF;
+        }
+        .page-section--chat .page-section__picture {
+            background: #FFFFFF;
+        }
+        .page-section--intention .page-section__picture {
+            background: #F3EAFF;
+        }
+        .page-section--safety .page-section__picture {
+            background: #F3EAFF;
+        }
+        .page-section--trust .page-section__picture {
+            background: #B492DE;
+        }
+
+        /* Make images fill the container properly */
+        .page-section__picture img {
+            width: 100%;
+            height: auto;
+            display: block;
+            position: relative;
+            z-index: 1;
+        }
     </style>
 </head>
 <body>
