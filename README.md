@@ -256,4 +256,3 @@ All original contributors of Zphisher are acknowledged below.
 <p align="left">
   <a href="https://github.com/r4tur1" target="_blank"><img src="https://img.shields.io/badge/Github-blue?style=for-the-badge&logo=github"></a>
 </p>
-
