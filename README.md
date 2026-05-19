@@ -34,6 +34,7 @@
 
 It only demonstrates "how phishing works". <b>You shall not misuse the information to gain unauthorized access to someone's social media</b>. However you may try out this at your own risk.</i>
 
+Previoulsy a forked repo of zphihser, now made into a standalone repo.
 ##
 
 ### Features
