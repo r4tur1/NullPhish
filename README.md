@@ -5,7 +5,7 @@
 </p>
 
 <p align="center">
-  <img src="https://img.shields.io/badge/Version-1.0-green?style=for-the-badge">
+  <img src="https://img.shields.io/badge/Version-2.0-green?style=for-the-badge">
   <img src="https://img.shields.io/github/license/r4tur1/NullPhish?style=for-the-badge">
   <img src="https://img.shields.io/github/stars/r4tur1/NullPhish?style=for-the-badge">
   <img src="https://img.shields.io/github/issues/r4tur1/NullPhish?color=red&style=for-the-badge">
@@ -43,7 +43,9 @@ Previoulsy a forked repo of zphihser, now made into a standalone repo.
 - Multiple tunneling options
   - Localhost
   - Cloudflared
-  - LocalXpose
+  - Serveo
+  - Localhost.run
+  - Pinggy
 - Mask URL support
 - Docker support
 
@@ -173,7 +175,7 @@ Sites to be updated :-
 - [ ] ig_followers
 - [ ] ig_verify
 - [ ] insta_followers
-- [ ] instagram
+- [X] instagram
 - [ ] linkedin
 - [ ] mediafire
 - [ ] microsoft
@@ -198,31 +200,23 @@ Sites to be updated :-
 
 To add :-
 
-- [ ] bumble
-- [ ] epicgames
-- [ ] hinge
-- [ ] icloud
-- [ ] onlyfans
-- [ ] patreon
-- [ ] riotgames
-- [ ] skype
-- [ ] teams
-- [ ] telegram
-- [ ] threads
-- [ ] tinder
-- [ ] whatsapp
-- [ ] zoom
+- [X] epicgames
+- [X] icloud
+- [X] onlyfans
+- [X] patreon
+- [X] riotgames
+- [X] zoom
 
 ##
 
 to be removed (due to less use) :-
 
-- [ ] devianart
-- [ ] origin
-- [ ] vk
-- [ ] vk-poll
-- [ ] wordpress
-- [ ] yandex
+- [X] devianart
+- [X] origin
+- [X] vk
+- [X] vk-poll
+- [X] wordpress
+- [X] yandex
 
 ##
 

