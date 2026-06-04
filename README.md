@@ -241,7 +241,7 @@ twitter • xbox • yahoo
 ### 🗑️ Deprecated Templates
 
 Removed due to low usage:
-
+ 
 ```text
 devianart • origin • vk • vk-poll • wordpress • yandex
 ```
