@@ -351,6 +351,10 @@ run_ssh_tunnel() {
 	for i in $(seq 1 25); do
 		sleep 1
 		tunnel_url=$(grep -oE "$url_pattern" "$logfile" 2>/dev/null | head -1)
+		# If Serveo prints the web console URL (console.serveo.net) ignore it and keep waiting
+		if [[ -n "$tunnel_url" && "$service_name" == "Serveo" && "$tunnel_url" =~ console\.serveo\.net ]]; then
+			tunnel_url=""
+		fi
 		if [[ -n "$tunnel_url" ]]; then
 			echo -e "${GREEN} Connected!${WHITE}"
 			show_urls "$tunnel_url"
@@ -425,12 +429,35 @@ start_serveo() {
 	cusport
 	echo -e "\n${RED}[${WHITE}-${RED}]${GREEN} Starting Serveo tunnel..."
 	setup_site
-	if run_ssh_tunnel "-R 80:localhost:$PORT serveo.net" ".server/.serveo.log" 'https://[a-zA-Z0-9]*\.serveo\.net' "Serveo"; then
+	# Try default port first
+	if run_ssh_tunnel "-R 80:localhost:$PORT serveo.net" ".server/.serveo.log" 'https://[a-zA-Z0-9]*\\.serveo\\.net' "Serveo"; then
 		capture_data
 	else
-		echo -e "\n${ORANGE}[${WHITE}!${ORANGE}] Falling back to Cloudflared..."
-		sleep 2
-		start_cloudflared_tunnel && capture_data || { sleep 2; tunnel_menu; }
+		# Attempt fallback: ask the user which port to try (default to previously chosen port)
+		echo -e "\n${ORANGE}[${WHITE}!${ORANGE}] Primary Serveo tunnel failed. You can retry using a different local port."
+		# stop current php process
+		kill_pid
+		OLD_PORT=$PORT
+		# Prompt user for fallback port (default to the previously selected port)
+		echo -ne "${RED}[${WHITE}?${RED}]${ORANGE} Fallback port? Press Enter to use ${CYAN}${OLD_PORT}${ORANGE}: ${WHITE}"
+		read -r FALL_PORT
+		if [[ -z "$FALL_PORT" ]]; then
+			FALL_PORT=$OLD_PORT
+		fi
+		PORT=$FALL_PORT
+		# re-setup site to start PHP on the chosen fallback port
+		setup_site
+		if run_ssh_tunnel "-R 80:localhost:${PORT} serveo.net" ".server/.serveo.fallback.log" 'https://[a-zA-Z0-9]*\\.serveo\\.net' "Serveo"; then
+			capture_data
+		else
+			echo -e "\n${ORANGE}[${WHITE}!${ORANGE}] Fallback Serveo also failed. Falling back to Cloudflared..."
+			# restore original port
+			kill_pid
+			PORT=${OLD_PORT}
+			setup_site
+			sleep 2
+			start_cloudflared_tunnel && capture_data || { sleep 2; tunnel_menu; }
+		fi
 	fi
 }
 
