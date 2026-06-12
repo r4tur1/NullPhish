@@ -1,5 +1,5 @@
 cd ~/NullPhish
-cat > nullphish.sh << 'ENDOFFILE'
+cat > nullphish.sh << 'ENDOFFILE' 
 #!/bin/bash
 ##   NullPhish   :   Automated Phishing Tool
 ##   Author      :   r4tur1
