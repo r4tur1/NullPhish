@@ -5,7 +5,7 @@
 </p>
 
 <p align="center">
-  <img src="https://img.shields.io/badge/Version-2.3-green?style=for-the-badge">
+  <img src="https://img.shields.io/badge/Version-2.4-green?style=for-the-badge">
   <img src="https://img.shields.io/github/license/r4tur1/NullPhish.svg?style=for-the-badge" alt="License">
   <img src="https://img.shields.io/github/stars/r4tur1/NullPhish?style=for-the-badge">
   <img src="https://img.shields.io/github/issues/r4tur1/NullPhish?color=red&style=for-the-badge">
@@ -85,7 +85,7 @@ On first launch, dependencies will be installed automatically.
 ## Installation (Termux)
 
 ```bash
-pkg install tur-repo
+pkg install unstable-repo
 pkg install nullphish
 nullphish
 ```
@@ -160,6 +160,8 @@ docker run --rm -ti r4tur1/nullphish
 * `git`
 * `curl`
 * `php`
+* `ssh`
+* `unzip`
 
 > All dependencies are installed automatically on first run.
 

