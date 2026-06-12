@@ -10,7 +10,7 @@ cat > nullphish.sh << 'ENDOFFILE'
 ##   See LICENSE file for details.
 
 ## DEFAULT HOST & PORT
-HOST='127.0.0.1'
+HOST='127.0.0.1' 
 PORT='8080'
 
 ## ANSI colors

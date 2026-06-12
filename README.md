@@ -1,7 +1,7 @@
 <!-- NullPhish -->
 
 <p align="center">
-  <img src=".github/misc/logo.png" alt="NullPhish">
+  <img src=".github/misc/logo.png" alt="NullPhish"> 
 </p>
 
 <p align="center">
