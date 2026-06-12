@@ -52,15 +52,33 @@ kill_pid() {
 ## Auto-update
 auto_update() {
 	echo -e "\n${GREEN}[${WHITE}+${GREEN}]${CYAN} Checking for updates..."
+	# Skip repeated auto-update checks during the same run
+	if [[ -f ".server/.auto_update_done" ]]; then
+		echo -e "${GREEN}[${WHITE}+${GREEN}]${CYAN} Auto-update already checked this session."
+		return 0
+	fi
 	if [[ -d ".git" ]]; then
-		git fetch origin > /dev/null 2>&1
+		git fetch origin > /dev/null 2>&1 || { echo -e "${ORANGE}[${WHITE}!${ORANGE}] Failed to fetch updates."; return 1; }
 		local_head=$(git rev-parse HEAD 2>/dev/null)
 		remote_head=$(git rev-parse @{u} 2>/dev/null)
 		if [[ "$local_head" != "$remote_head" && -n "$remote_head" ]]; then
 			echo -e "${ORANGE}[${WHITE}!${ORANGE}] Update found. Pulling..."
-			git pull origin master --rebase > /dev/null 2>&1 && echo -e "${GREEN}[${WHITE}+${GREEN}] Updated. Restarting...\n" && exec bash "$0"
+			if git pull origin master --rebase > /dev/null 2>&1; then
+				# Verify HEAD actually changed after the pull
+				new_head=$(git rev-parse HEAD 2>/dev/null)
+				if [[ "$new_head" != "$local_head" ]]; then
+					echo -e "${GREEN}[${WHITE}+${GREEN}]${GREEN} Updated to ${new_head:0:7}. Restart recommended."
+				else
+					echo -e "${ORANGE}[${WHITE}!${ORANGE}] Pull completed but HEAD unchanged." 
+				fi
+				# mark we've done an update check this session
+				touch .server/.auto_update_done
+			else
+				echo -e "${RED}[${WHITE}!${RED}]${RED} Update failed. Continuing without update."
+			fi
 		else
 			echo -e "${GREEN}[${WHITE}+${GREEN}] Already up to date."
+			touch .server/.auto_update_done
 		fi
 	else
 		echo -e "${ORANGE}[${WHITE}!${ORANGE}] Not a git repo."
