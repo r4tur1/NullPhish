@@ -20,7 +20,7 @@
 </p>
 
 <p align="center">
-  <b>An automated phishing toolkit for security research, with 30+ templates.</b>
+  <b>An automated phishing toolkit for security research, with 30+ templates, with discord and telegram integration.</b>
 </p>
 
 ---
@@ -58,6 +58,7 @@ Previously a fork of Zphisher, now maintained as a standalone repository.
   * Serveo
   * Localhost.run
   * Pinggy
+  (Automatic fallback to Cloudflared if any fails)
 * Mask URL support
 * Docker support
 
@@ -254,10 +255,9 @@ devianart • origin • vk • vk-poll • wordpress • yandex
 
 <p>
 NullPhish is based on <b>Zphisher</b> by <b>htr-tech (Tahmid Rayat)</b>, licensed under GPL-3.0.
-All original contributors of Zphisher are acknowledged below.
+All original contributors of Zphisher are acknowledged.
 </p>
 
-<!-- Keep your existing contributors table unchanged -->
 
 ---
 
